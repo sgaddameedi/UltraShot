@@ -1,49 +1,61 @@
 # Posting HDR to Instagram and Threads
 
-Instagram and Threads display gain-map JPEGs in HDR on supported phones (Android 14+ with an HDR
-screen, recent iPhones). The catch is that their upload flow strips the gain map the moment it
-touches the pixels. The whole recipe is therefore: **make the final image in UltraShot, then upload
-it without changing anything.**
+Instagram and Threads both display gain-map JPEGs in HDR on phones that support it, which at the time
+of writing means Android devices running version 14 or later with an HDR-capable screen, and recent
+iPhones. The complication is that their upload flow removes the gain map whenever it touches the
+pixels. Cropping, zooming, straightening, applying a filter or adjusting the exposure all produce a
+new, ordinary JPEG. The whole procedure therefore comes down to one principle: finish the image in
+UltraShot, and upload it without changing anything.
 
-## 1. Prepare in UltraShot
+## Preparing the image
 
-- Keep the **Instagram** output enabled. It produces a 1440 px wide copy, which is the width
-  Instagram stores; wider uploads are resized server-side.
-- Choose the **crop** you want in Settings → Output or in the inspector: `4:5` for portrait posts,
-  `1:1` for square, `1.91:1` for the widest landscape Instagram allows, `9:16` for stories.
-  Position the crop with the X / Y sliders while watching the preview.
-- Check the **SDR look**. The base image is what shows on SDR screens, in thumbnails, and for
-  anyone whose phone does not support HDR. Dark game scenes often benefit from +0.3 to +0.5 stops
-  of exposure; the HDR layer is unaffected.
+Leave the Instagram output enabled in Settings. It produces a copy 1440 pixels wide, which is the width
+Instagram stores internally; anything wider is resized by Instagram's servers, and that resize removes
+the gain map just as a manual crop would.
 
-## 2. Upload
+Choose the aspect ratio in Settings or in the inspector. Instagram's portrait posts are 4:5, square
+posts are 1:1, landscape posts can be as wide as 1.91:1, and stories are 9:16. The crop is positioned
+with the X and Y sliders while the preview updates, so the composition can be checked before anything
+is written.
 
-- Upload from a **desktop web browser** (instagram.com), or from an Android phone. Uploads from an
-  iPhone are transcoded through HEIC and lose the gain map.
-- In the crop step, open the aspect menu and choose **Original**. Do not drag the crop, do not zoom.
-- Skip filters and adjustments. Any edit is applied to the base image only and drops the gain map.
-- Post. The HDR shows in the Instagram app on compatible phones; the web and SDR phones show the
-  base image.
+Review the SDR base image in the inspector. The base is what appears on SDR screens, in the feed
+before the post is opened, in thumbnails, and on any phone that does not render HDR, so it deserves
+the same attention as the HDR version. Dark game scenes often benefit from a third to half a stop of
+additional exposure; the HDR layer is unaffected by the adjustment.
 
-For Threads, the same applies. Do not upload to Instagram via a Threads cross-post, which resizes.
+## Uploading
 
-## 3. Verify
+Upload from a desktop web browser at instagram.com, or from an Android phone. Uploads from an iPhone
+pass through HEIC conversion and lose the gain map.
 
-Open the post in the Instagram app on an HDR phone and compare with the SDR screenshot in your
-gallery; the highlights should visibly glow brighter than the UI. Chrome and Edge on an HDR monitor
-also render the gain map when you open the `Insta\*.jpg` file directly, which is a quick desk check.
+In the crop step, open the aspect-ratio menu and choose *Original*. Do not drag the crop frame and do
+not pinch or zoom, because any of these actions re-renders the image. Skip the filters and
+adjustments screens entirely, then post. On a compatible phone the Instagram app shows the post in
+HDR; on the web and on SDR phones the base image is shown instead, which is the intended fallback.
+
+Threads behaves the same way. Avoid cross-posting from Threads to Instagram, which resizes the image
+on the way.
+
+## Checking the result
+
+Open the post in the Instagram application on an HDR-capable phone and compare it with an SDR
+screenshot in the gallery. The highlights of an HDR post are visibly brighter than the white of the
+user interface around them. On the desktop, Chrome and Edge render gain maps when an HDR monitor is
+connected, so opening the file from the `Insta` folder directly in either browser is a quick way to
+verify a conversion before uploading it.
 
 ## Other services
 
-| Service | Gain-map HDR | Notes |
-| --- | --- | --- |
-| Google Photos | Yes | Keeps the file as-is |
-| Chrome / Edge | Yes | Any page or local file |
-| Android gallery apps | Mostly | Pixel, Samsung Gallery, OnePlus |
-| Apple Photos (iOS 18+) | Yes | ISO 21496-1 metadata, which UltraShot writes |
-| Discord | No | Shows the SDR base |
-| X / Twitter, Reddit, Facebook | No | Re-encoded to SDR |
-| Messaging apps | No | Re-encoded unless sent as a file |
+The table summarises how commonly used services handle gain-map JPEGs. Services that discard the gain
+map still show the SDR base image correctly, which is the reason to prefer this format over HDR-only
+formats: the worst case is a normal photograph, never a broken one.
 
-Services that strip the gain map still show a correct SDR image, which is the point of using the
-format: nothing ever looks wrong, it just looks SDR.
+| Service | Shows HDR | Notes |
+| --- | --- | --- |
+| Google Photos | Yes | Stores the file unchanged |
+| Chrome and Edge | Yes | Any web page or local file, on an HDR display |
+| Android gallery applications | Mostly | Pixel, Samsung Gallery and OnePlus render gain maps |
+| Apple Photos (iOS 18 and later) | Yes | Reads the ISO 21496-1 metadata that UltraShot writes |
+| Discord | No | Displays the base image |
+| X, Reddit, Facebook | No | Re-encoded to SDR on upload |
+| Messaging applications | No | Re-encoded when sent as a photo; preserved when sent as a file |

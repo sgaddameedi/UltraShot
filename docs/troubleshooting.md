@@ -1,55 +1,79 @@
 # Troubleshooting
 
-Open the **Log** drawer (terminal icon, top right) first. Every conversion logs the decoded format,
-peak brightness, the gain-map range and the reconstructed peak, and failures include a traceback.
+Most problems fall into one of three groups: the application itself, the conversion, or the way the
+result is displayed somewhere else. Whichever it is, the Log drawer (the terminal icon in the top bar)
+is the first place to look. Every conversion records the decoded format and resolution, the peak
+brightness of the capture, the range of the gain map, and the peak brightness that an HDR viewer will
+reconstruct from the finished file. Failures are logged with a full traceback, and that traceback is
+the most useful thing to include in a bug report.
 
-## The app
+## The application
 
-**Nothing happens when I double-click UltraShot.exe.** An instance is probably already running in
-the tray (look for the icon near the clock); the new launch hands over to it and exits. Right-click
-the tray icon → *Open UltraShot*.
+**Double-clicking UltraShot.exe appears to do nothing.** In almost every case an instance is already
+running in the system tray, and the new launch has handed over to it and exited, which is the intended
+behaviour. Look for the UltraShot icon near the clock and choose *Open UltraShot* from its menu. If you
+genuinely need a second instance, for example a development copy alongside an installed one, start it
+with the `--new-instance` flag.
 
-**The window is blank.** Edge WebView2 is missing or broken. It ships with Windows 11 and recent
-Windows 10 builds; reinstall it from Microsoft's "Evergreen Bootstrapper" page.
+**The window opens but is blank.** The user interface runs inside the Edge WebView2 runtime, which is
+part of Windows 11 and of every recently updated Windows 10 installation. If it has been removed or
+is damaged, reinstall it from Microsoft's WebView2 download page (the "Evergreen Bootstrapper").
 
-**Dropping files does nothing.** Only `.jxl` and `.jxr` files are accepted; PNG/JPG/HEIC are not
-HDR captures. Folders are scanned one level deep.
+**Dropping files has no effect.** Only `.jxl` and `.jxr` files are accepted, because those are the
+formats the capture tools write for HDR. PNG, JPEG and HEIC files are not HDR captures. Dropped folders
+are searched one level deep.
 
-**The watch folder does not pick up captures.** Check the folder in Settings, and that *Include
-subfolders* is on for NVIDIA App captures. The log shows "new capture: …" when a file is detected.
-If your capture tool writes slowly, raise *Stable for*.
+**The watch folder does not notice new captures.** Confirm the folder in Settings, and that *Include
+subfolders* is enabled if the captures come from the NVIDIA App, which keeps one subfolder per game.
+When a capture is detected the log records "new capture: …" followed by the file name. If the capture
+tool writes large files slowly, increasing the *Stable for* interval gives it more time to finish
+before UltraShot reads the file.
 
-**Start with Windows does nothing.** The Startup shortcut points at the exe that created it. If you
-moved UltraShot, open it once from the new location; it refreshes the shortcut.
+**Start with Windows stopped working after moving the application.** The Startup shortcut points at the
+copy of UltraShot that created it. Opening the application once from its new location refreshes the
+shortcut, as it does the Explorer menu entry.
 
-## Conversion
+## The conversion
 
-**"input looks like an SDR screenshot, not HDR".** The file is 8-bit. The game or Windows was not
-in HDR mode at capture time.
+**"input looks like an SDR screenshot, not HDR".** The file contains 8-bit image data, which means the
+capture was taken while the game, or Windows itself, was not in HDR mode. HDR has to be enabled in
+Windows display settings and in the game's own graphics settings.
 
-**"input is not a JPEG XL or JPEG XR file".** The extension is wrong or the file is truncated.
-Re-capture.
+**"input is not a JPEG XL or JPEG XR file".** The file has the right extension but the wrong contents,
+or it was truncated while being written. Taking the capture again is the only remedy.
 
-**The 4K output is huge (15–20 MB).** Expected: quality 100, 4:4:4, plus a full-resolution gain map.
-The Instagram copy is the one to upload; lower *JPEG quality* if you need smaller full-size files.
+**The full-size output is very large.** Files of fifteen to twenty megabytes are normal for a 4K
+capture. The base image and the gain map are both encoded at quality 100 with 4:4:4 chroma, and the
+gain map is stored at full resolution because that is what preserves fine highlight detail. The
+Instagram copy is the one intended for uploading; if you need smaller full-size files, lower the
+*JPEG quality* setting.
 
-**Conversion takes 6–10 s per capture.** Decoding a 4K lossless JXL and encoding two JPEGs at
-quality 100 is CPU-bound. The watch folder runs one conversion at a time on purpose.
+**Conversion takes several seconds per capture.** Decoding a lossless 4K JPEG XL and encoding two
+JPEGs at quality 100 is processor-bound work, and six to ten seconds is typical. The watch folder
+deliberately converts one capture at a time so that a burst of screenshots does not compete with the
+game for the processor.
 
 ## The result
 
-**It looks SDR on my phone.** The viewer must support gain maps (Google Photos, Chrome, Instagram,
-Threads, Samsung Gallery). Transferring through WhatsApp, Telegram, Discord or email re-encodes the
-file; send it as a *file*/document or use cloud storage.
+**The image looks like ordinary SDR on a phone.** The viewing application must support gain maps and
+the display must be in a mode that permits HDR. Google Photos, Chrome, Instagram, Threads and Samsung
+Gallery all render gain maps; many other gallery and messaging applications do not. Transferring the
+file through WhatsApp, Telegram, Discord or email as a photo re-encodes it and removes the gain map.
+Sending it as a file or document, or through cloud storage, preserves it.
 
-**It looks SDR in Windows Photos.** Windows Photos does not render gain maps. Use Chrome or Edge on
-an HDR monitor to check files on the desktop.
+**The image looks like ordinary SDR in Windows Photos.** Windows Photos does not render gain maps.
+Chrome and Edge do, so opening the file in either browser on an HDR monitor is the reliable way to
+check a result on the desktop.
 
-**Instagram shows it dim or SDR.** The upload crop/zoom/filter or an iPhone upload removed the gain
-map. See [instagram.md](instagram.md).
+**Instagram shows the post dim, or without HDR.** The upload flow applied a crop, zoom or filter, or
+the upload came from an iPhone, either of which removes the gain map. The procedure in
+[instagram.md](instagram.md) avoids both.
 
-**Highlights look clipped in HDR.** Check the log: "HDR layer after encode: peak N nits" should
-match the source peak within a few percent. If it does not, open an issue with the capture.
+**Highlights appear clipped on an HDR display.** Compare the two peak values in the log: the capture's
+peak and the "HDR layer after encode" peak should agree to within a few percent. If they do not,
+please open an issue and attach the capture, since this indicates a problem in the encoder rather
+than in the viewer.
 
-**The SDR base is too dark / too flat.** Adjust *SDR exposure* and *Highlight knee* in the inspector
-while watching the preview; the HDR layer is unaffected.
+**The SDR version is too dark or too flat.** Adjust *SDR exposure* and *Highlight knee* in the
+inspector while watching the preview. These settings shape only the base image; the HDR layer is the
+same whatever you choose.

@@ -1,47 +1,50 @@
 # Capturing HDR screenshots
 
-UltraShot can only keep what the capture tool saved. This page covers the three tools that write
-real HDR files on Windows and the settings that matter.
+UltraShot can only preserve what the capture tool recorded, so the quality of the result is decided
+at capture time. This guide covers the three tools on Windows that write genuine HDR files and the
+settings each one needs.
 
-Before any of them: the game must actually be rendering in HDR. Turn on **Use HDR** in Windows
-(Settings → System → Display) and enable HDR in the game. If either is off, the capture tools save
-an 8-bit SDR image and UltraShot reports "input looks like an SDR screenshot".
+One requirement applies to all of them: the game must actually be rendering in HDR when the capture
+is taken. That means HDR must be enabled in Windows, under Settings, System, Display, and in the
+game's own graphics options. If either is off, every capture tool silently saves an 8-bit SDR image,
+and UltraShot reports that the input looks like an SDR screenshot.
 
-## ReShade (recommended)
+## ReShade
 
-ReShade 6.x can save HDR screenshots losslessly as JPEG XL.
+ReShade is the recommended source, because recent 6.x releases can save HDR screenshots losslessly in
+the JPEG XL format. Open the ReShade overlay (the Home key by default), switch to the Settings tab, and
+in the Screenshots section set the format to JPEG XL and choose a screenshot folder. The default folder
+is the game's own directory; pointing every game at `Videos\Captures` keeps all captures in one place
+and lets UltraShot's watch folder handle them without further configuration. Screenshots are then
+taken with ReShade's screenshot key, PrtScn by default.
 
-1. Open the ReShade overlay (Home by default) → **Settings** tab.
-2. Under *Screenshots*, set the format to **JPEG XL** and choose a screenshot folder (the default
-   is the game's own folder; `Videos\Captures` keeps everything in one place for the watch folder).
-3. Take screenshots with the ReShade screenshot key (PrtScn by default).
+What the file contains depends on how the game presents HDR to Windows. Games using scRGB, which is
+the majority of modern titles, produce float16 images in linear light with BT.709 primaries, where a
+value of 1.0 corresponds to 80 nits. Games using HDR10 produce 16-bit PQ images, occasionally HLG,
+with BT.2100 primaries. UltraShot recognises both automatically by inspecting the data type. For the
+rare HLG title, set *Input transfer* to HLG under Settings, Fine-tuning.
 
-What you get depends on the game's HDR mode:
+## NVIDIA App and GeForce Experience
 
-- **scRGB games** (most modern titles): float16, linear light, BT.709 primaries, 1.0 = 80 nits.
-- **HDR10 games**: 16-bit PQ (sometimes HLG), BT.2100 primaries.
-
-UltraShot detects both automatically (float = scRGB, 16-bit = PQ). If a game uses HLG, set
-*Input transfer* to HLG in Settings → Fine-tuning.
-
-## NVIDIA App / GeForce Experience
-
-Press **Alt+F1** in an HDR game. NVIDIA writes a `.jxr` (JPEG XR, float scRGB) into
-`Videos\NVIDIA\<Game name>\`. Point UltraShot's watch folder at `Videos\NVIDIA` and keep
-**Include subfolders** on, so every game's folder is covered.
-
-NVIDIA also writes an SDR `.png` next to the `.jxr`; UltraShot ignores PNGs.
+Pressing Alt+F1 in an HDR game saves a JPEG XR file containing float scRGB data, alongside an SDR PNG
+that UltraShot ignores. The NVIDIA App writes these to `Videos\NVIDIA\<game name>`, one subfolder per
+game, so the convenient configuration is to set UltraShot's watch folder to `Videos\NVIDIA` and leave
+*Include subfolders* enabled.
 
 ## Windows Game Bar
 
-Press **Win+Alt+PrtScn** in an HDR game. Windows saves a `.jxr` to `Videos\Captures`, which is
-UltraShot's default watch folder, so new captures convert without doing anything else.
+Pressing Win+Alt+PrtScn in an HDR game saves a JPEG XR file, again with float scRGB data, to
+`Videos\Captures`. This is UltraShot's default watch folder, so Game Bar captures convert without any
+configuration at all.
 
-## Tips for better results
+## Getting the most from a capture
 
-- Capture at the resolution you want to share. UltraShot downsizes in linear light for the
-  Instagram copy, but it will not invent detail for an upscale.
-- Peak brightness is the game's business. A scene with "891 nits" on the card means the brightest
-  pixel in the frame reaches 891 nits on a display that can show it; a dark interior might peak at
-  300 nits and that is correct.
-- The "subtle HDR" label only means few pixels exceed SDR white. It is not a warning.
+Capture at the resolution you intend to share. UltraShot resizes in linear light when it prepares the
+Instagram copy, which downscales cleanly, but it cannot add detail to a capture that is smaller than
+the output you want.
+
+The peak brightness shown on each card describes the scene rather than the conversion. A night-time
+interior may peak at 300 nits and a sunlit exterior at 1,500; both are correct, and both will be
+reproduced exactly on a display that can show them. Likewise, the "subtle HDR" label simply means that
+few pixels in the frame exceed SDR white, which is often true of a well-exposed scene and is not a
+warning.
