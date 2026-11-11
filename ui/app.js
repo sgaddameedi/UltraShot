@@ -181,12 +181,12 @@ function select(id) {
   document.querySelectorAll(".card").forEach((c) => c.classList.toggle("selected", c.dataset.id === id));
   const f = S.files.get(id);
   $("#inspName").textContent = f.name;
-  $("#inspector").classList.add("open");
+  openPane("inspector");
   renderInspectorControls();
   renderInspectorInfo(f);
   requestPreview();
 }
-function closeInspector() { S.selected = null; $("#inspector").classList.remove("open"); document.querySelectorAll(".card.selected").forEach((c) => c.classList.remove("selected")); }
+function closeInspector() { S.selected = null; closePane("inspector"); document.querySelectorAll(".card.selected").forEach((c) => c.classList.remove("selected")); }
 
 function renderInspectorControls() {
   const s = S.settings;
@@ -357,10 +357,33 @@ async function saveSetting(key, val) {
   if (["exposure", "knee", "auto_sdr", "ig_crop", "crop_x", "crop_y", "transfer", "ig_width"].includes(key)) requestPreview();
 }
 
-function openSettings() { closeLog(); closeInspector(); $("#settings").classList.add("open"); renderSettings(); }
-function closeSettings() { $("#settings").classList.remove("open"); }
-function openLog() { closeSettings(); closeInspector(); $("#logdrawer").classList.add("open"); const pre = $("#logbody"); pre.scrollTop = pre.scrollHeight; }
-function closeLog() { $("#logdrawer").classList.remove("open"); }
+/* Side panes keep comfortable widths; when another pane would not fit beside the content,
+   the pane opened longest ago is closed instead of squeezing all of them. */
+const PANES = { inspector: 420, logdrawer: 440, settings: 600 };
+const paneOrder = [];
+const CONTENT_MIN = 300;
+function openPane(id) {
+  const i = paneOrder.indexOf(id); if (i >= 0) paneOrder.splice(i, 1);
+  paneOrder.push(id);
+  document.getElementById(id).classList.add("open");
+  fitPanes();
+}
+function closePane(id) {
+  const i = paneOrder.indexOf(id); if (i >= 0) paneOrder.splice(i, 1);
+  document.getElementById(id).classList.remove("open");
+}
+function fitPanes() {
+  const avail = window.innerWidth - CONTENT_MIN;
+  while (paneOrder.length > 1 && paneOrder.reduce((s, id) => s + PANES[id], 0) > avail) {
+    const oldest = paneOrder[0];
+    if (oldest === "inspector") { closeInspector(); } else { closePane(oldest); }
+  }
+}
+window.addEventListener("resize", fitPanes);
+function openSettings() { openPane("settings"); renderSettings(); }
+function closeSettings() { closePane("settings"); }
+function openLog() { openPane("logdrawer"); const pre = $("#logbody"); pre.scrollTop = pre.scrollHeight; }
+function closeLog() { closePane("logdrawer"); }
 function toggleLog() { $("#logdrawer").classList.contains("open") ? closeLog() : openLog(); }
 
 /* ------------------------------------------------------------------ popovers, toasts, log */
@@ -445,7 +468,7 @@ function bindUI() {
   $("#btnClear").addEventListener("click", () => S.api.clear());
   $("#btnClearDone").addEventListener("click", () => S.api.clear_done());
   $("#btnConvert").addEventListener("click", convertAll);
-  $("#btnSettings").addEventListener("click", openSettings);
+  $("#btnSettings").addEventListener("click", () => $("#settings").classList.contains("open") ? closeSettings() : openSettings());
   $("#settingsBack").addEventListener("click", closeSettings);
   $("#btnLog").addEventListener("click", toggleLog);
   $("#btnLogClose").addEventListener("click", closeLog);

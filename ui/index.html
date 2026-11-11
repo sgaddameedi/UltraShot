@@ -34,6 +34,8 @@
   </div>
 </header>
 
+<div class="workspace">
+<div class="left">
 <main id="main">
   <section id="empty" class="dropzone" tabindex="0">
     <div class="dz-inner">
@@ -64,8 +66,10 @@
     <button class="primary" id="btnConvert">Convert</button>
   </div>
 </footer>
+</div>
+<div class="panes" id="panes">
 
-<aside id="inspector" class="inspector" aria-hidden="true">
+<aside id="inspector" class="inspector pane" aria-hidden="true">
   <div class="insp-head">
     <div class="insp-title" id="inspName">—</div>
     <button class="iconbtn small" id="inspClose" title="Close">
@@ -112,7 +116,7 @@
   </div>
 </aside>
 
-<div id="settings" class="page" aria-label="Settings">
+<div id="settings" class="page pane" aria-label="Settings">
   <div class="page-head">
     <h1>Settings</h1>
     <button class="iconbtn small" id="settingsBack" title="Close (Esc)">
@@ -122,9 +126,11 @@
   <div class="page-body" id="settingsBody"></div>
 </div>
 
-<div id="logdrawer" class="drawer" aria-label="Log">
+<div id="logdrawer" class="drawer pane" aria-label="Log">
   <div class="drawer-head"><span>Log</span><div><button class="ghost tiny" id="btnLogClear">Clear</button><button class="iconbtn small" id="btnLogClose"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>
   <pre id="logbody"></pre>
+</div>
+</div>
 </div>
 
 <div id="lightbox" class="lightbox hidden" role="dialog" aria-label="Converted image viewer">

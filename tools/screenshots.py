@@ -105,6 +105,9 @@ def main():
         js("closeSettings(); openLog()")
         time.sleep(1.0)
         shot("log.png")
+        js("openSettings(); document.querySelector('.card').click()")
+        time.sleep(3.0)
+        shot("panes-side-by-side.png")
         window.destroy()
 
     window.events.loaded += lambda: threading.Thread(target=flow, daemon=True).start()
