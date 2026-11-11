@@ -83,13 +83,26 @@ Desktop, 1920×1080, from `packaging\msix\store-listing\screenshots\`. Upload in
 7. `panes-side-by-side.png`: Inspector and settings open side by side next to the file list
 8. `settings.png`: Output, saving, watch folder and fine-tuning settings
 
-### Store logos
+### Store logos and additional art
 
-From `packaging\msix\store-listing\`:
+All from `packaging\msix\store-listing\`, one file for every slot Partner Center offers. The three
+tile icons and the 16:9 image matter most: the tile icons are what Windows shows in the Store
+app and the Start menu, and the 16:9 image is the large header on the product page.
 
-- 1:1 app tile icon (300×300): `store-logo-300x300.png`
-- 16:9 super hero art (1920×1080): `store-banner-1920x1080.png`
-- 2:1 promotional art (2400×1200): `store-poster-2400x1200.png`
+| Partner Center slot | Size | File |
+| --- | --- | --- |
+| App tile icon 1:1 | 300×300 | `store-logo-300x300.png` |
+| App tile icon 1:1 | 150×150 | `store-logo-150x150.png` |
+| App tile icon 1:1 | 71×71 | `store-logo-71x71.png` |
+| Box art 1:1 | 1080×1080 | `store-box-1080x1080.png` |
+| Poster art 2:3 | 720×1080 | `store-poster-720x1080.png` |
+| Poster art 9:16 | 1080×1920 | `store-poster-1080x1920.png` |
+| Super hero art 16:9 (4K) | 3840×2160 | `store-hero-3840x2160.png` |
+| Super hero art 16:9 (HD), if 4K is refused | 1920×1080 | `store-banner-1920x1080.png` |
+| Promotional art 2:1 | 2400×1200 | `store-poster-2400x1200.png` |
+
+Partner Center accepts either size where it lists two; upload the 4K hero art, which the Store
+scales down for smaller placements. Slots the dashboard does not show can be ignored.
 
 ### Additional information
 

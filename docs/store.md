@@ -101,8 +101,10 @@ A converter with no network access answers "no" to everything and receives an al
   (on PowerShell set the three variables with `$env:` first). Upload `main`, `inspector`,
   `instagram-crop`, `highlights-map`, `compare`, `file-details`, `panes-side-by-side` and
   `settings`.
-- *Store logos:* `python packaging/msix/make_store_images.py` renders the 300×300 logo, the
-  2400×1200 poster and a 1920×1080 banner into `packaging/msix/store-listing/`.
+- *Store logos:* `python packaging/msix/make_store_images.py` renders every image slot the
+  listing offers into `packaging/msix/store-listing/`: the 300, 150 and 71 pixel tile icons,
+  1:1 box art, 2:3 and 9:16 poster art, 16:9 super hero art at 4K and HD, and 2:1 promotional
+  art. `packaging/msix/store-listing.md` maps each file to its slot and holds the listing text.
 - *Search terms:* HDR screenshot, Ultra HDR, gain map, Instagram HDR, ReShade, JXR, JXL.
 - *Copyright and trademark:* `© 2026 Sharath Gaddameedi. MIT licence.`
 - *Support contact:* the GitHub issues page.
