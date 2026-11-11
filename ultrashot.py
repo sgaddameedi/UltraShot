@@ -11,6 +11,7 @@ Needs jxl2uhdr.py and the ui/ folder next to this file, plus:
     pip install pywebview pystray imagecodecs numpy pillow
 """
 import base64
+import hashlib
 import io
 import json
 import os
@@ -49,6 +50,9 @@ ICON_PNG = os.path.join(UI_DIR, "ultrashot.png")
 APPDATA = os.environ.get("APPDATA") or os.path.expanduser("~")
 SETTINGS_DIR = os.path.join(APPDATA, APP_ID)
 SETTINGS_FILE = os.path.join(SETTINGS_DIR, "settings.json")
+SESSION_FILE = os.path.join(SETTINGS_DIR, "session.json")        # the file list, restored at launch
+THUMB_DIR = os.path.join(os.environ.get("LOCALAPPDATA") or APPDATA, APP_ID, "thumbs")
+SESSION_MAX = 500                                                # cards kept between launches
 OLD_SETTINGS_FILE = os.path.join(APPDATA, "JXL Ultra HDR", "settings.json")
 STARTUP_DIR = os.path.join(APPDATA, r"Microsoft\Windows\Start Menu\Programs\Startup")
 STARTUP_LNK = os.path.join(STARTUP_DIR, "UltraShot.lnk")
@@ -70,7 +74,7 @@ def default_capture_dir():
 
 
 DEFAULTS = dict(
-    theme="dark", notifications=True,
+    theme="dark", notifications=True, keep_list=True,
     make_full=True, full_dir="4K HDR",
     make_ig=True, ig_dir="Insta", ig_width=1440, ig_crop="none", crop_x=50, crop_y=50,
     save_mode="beside", save_dir="", keep_date=True, overwrite=False, suffix="",
@@ -337,8 +341,16 @@ class App:
         self.convert_q = queue.Queue()
         self.thumb_q = queue.Queue()
         self.pending_external = []
+        self._dirty = threading.Event()          # the file list changed and session.json is stale
+        self._restored = threading.Event()       # the previous session has been loaded (or skipped)
+        self._state_served = False
         threading.Thread(target=self._convert_loop, daemon=True, name="convert").start()
         threading.Thread(target=self._thumb_loop, daemon=True, name="thumbs").start()
+        threading.Thread(target=self._save_loop, daemon=True, name="session").start()
+        if self.settings["keep_list"]:
+            threading.Thread(target=self._restore, daemon=True, name="restore").start()
+        else:
+            self._restored.set()
 
     # ------------------------------------------------------------- bridge to the page
     def emit(self, name, payload=None):
@@ -369,7 +381,11 @@ class App:
                                       "outputs", "error", "added")}
 
     def state(self):
+        # The page asks for the state once it has loaded, normally well after the previous session
+        # has been read back; wait briefly so the list appears in one go rather than card by card.
+        self._restored.wait(2.0)
         with self.lock:
+            self._state_served = True
             return {"settings": self.settings, "files": [self.public(f) for f in self.files.values()],
                     "watching": self.watching, "version": VERSION, "codec": jxl2uhdr.ic.__version__,
                     "frozen": FROZEN, "packaged": PACKAGED, "first_run": self.first_run}
@@ -397,7 +413,128 @@ class App:
             self.thumb_q.put(f["id"])
             if auto_convert:
                 self.convert_q.put(f["id"])
+        if added:
+            self._dirty.set()
         return [f["id"] for f in added]
+
+    # ------------------------------------------------------------- session (the list survives restarts)
+    @staticmethod
+    def _thumb_key(path, mtime, size):
+        """Cache file name for a thumbnail: changes whenever the capture itself changes."""
+        h = hashlib.sha1(path.lower().encode("utf-8", "replace")).hexdigest()[:20]
+        return f"{h}-{int(mtime)}-{int(size)}.jpg"
+
+    def _store_thumb(self, f, data_url):
+        try:
+            os.makedirs(THUMB_DIR, exist_ok=True)
+            st = os.stat(f["path"])
+            with open(os.path.join(THUMB_DIR, self._thumb_key(f["path"], st.st_mtime, st.st_size)), "wb") as fh:
+                fh.write(base64.b64decode(data_url.split(",", 1)[1]))
+        except Exception:
+            pass
+
+    def _restore(self):
+        """Read back the previous session's list. Runs once, in the background, before the page asks
+        for the state. Thumbnails come from the on-disk cache; nothing is decoded unless a capture
+        changed since it was last seen, and a card only stays 'done' while its outputs still exist."""
+        try:
+            try:
+                with open(SESSION_FILE, "r", encoding="utf-8") as fh:
+                    saved = json.load(fh)
+                entries = saved.get("files", []) if isinstance(saved, dict) else []
+            except (OSError, ValueError):
+                entries = []
+            restored, need_thumb, keep_keys = OrderedDict(), [], set()
+            for e in entries[-SESSION_MAX:]:
+                try:
+                    path = str(e["path"])
+                    st = os.stat(path)
+                except (KeyError, OSError, TypeError):
+                    continue
+                status = e.get("status") or "queued"
+                outputs = [o for o in (e.get("outputs") or []) if isinstance(o, str) and os.path.exists(o)]
+                if status in ("done", "skipped") and (not outputs or len(outputs) != len(e.get("outputs") or [])):
+                    status = "queued"            # an output was deleted or moved: back to pending
+                elif status == "working":
+                    status = "queued"
+                changed = int(st.st_mtime) != int(e.get("mtime") or 0) or st.st_size != int(e.get("size") or 0)
+                f = dict(id=str(e.get("id") or uuid.uuid4().hex[:10]), name=os.path.basename(path), path=path,
+                         size=st.st_size, status=status, stats=None if changed else e.get("stats"),
+                         thumb=None, outputs=outputs, error=e.get("error") if status == "failed" else None,
+                         added=float(e.get("added") or st.st_mtime))
+                key = self._thumb_key(path, st.st_mtime, st.st_size)
+                keep_keys.add(key)
+                if not changed and f["stats"]:
+                    try:
+                        with open(os.path.join(THUMB_DIR, key), "rb") as fh:
+                            f["thumb"] = "data:image/jpeg;base64," + base64.b64encode(fh.read()).decode("ascii")
+                    except OSError:
+                        pass
+                if f["thumb"] is None or not f["stats"]:
+                    f["stats"] = None
+                    need_thumb.append(f["id"])
+                restored[f["id"]] = f
+            with self.lock:
+                # Files added before the restore finished (command line, Explorer) stay, after the old ones.
+                have = {f["path"].lower() for f in self.files.values()}
+                merged = OrderedDict((i, f) for i, f in restored.items() if f["path"].lower() not in have)
+                merged.update(self.files)
+                self.files = merged
+                served = self._state_served
+                payload = [self.public(f) for f in merged.values()] if served else None
+            if served and payload:
+                self.emit("files", payload)
+            for fid in need_thumb:
+                self.thumb_q.put(fid)
+            if restored:
+                self.log(f"restored {len(restored)} file(s) from the previous session")
+            # Drop cached thumbnails that no longer belong to any card.
+            try:
+                for name in os.listdir(THUMB_DIR):
+                    if name not in keep_keys:
+                        os.remove(os.path.join(THUMB_DIR, name))
+            except OSError:
+                pass
+        except Exception:
+            self.log(f"could not restore the previous session:\n{traceback.format_exc()}")
+        finally:
+            self._restored.set()
+
+    def _session_snapshot(self):
+        with self.lock:
+            items = list(self.files.values())[-SESSION_MAX:]
+        out = []
+        for f in items:
+            try:
+                mtime = os.path.getmtime(f["path"])
+            except OSError:
+                mtime = 0
+            out.append(dict(id=f["id"], path=f["path"], size=f["size"], mtime=int(mtime), status=f["status"],
+                            stats=f["stats"], outputs=f["outputs"], error=f["error"], added=f["added"]))
+        return {"version": VERSION, "files": out}
+
+    def _write_session(self):
+        try:
+            if not self.settings["keep_list"]:
+                if os.path.exists(SESSION_FILE):
+                    os.remove(SESSION_FILE)
+                return
+            os.makedirs(SETTINGS_DIR, exist_ok=True)
+            tmp = SESSION_FILE + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as fh:
+                json.dump(self._session_snapshot(), fh)
+            os.replace(tmp, SESSION_FILE)
+        except Exception:
+            pass
+
+    def _save_loop(self):
+        """Writes session.json at most once a second, off the UI and conversion threads."""
+        while True:
+            self._dirty.wait()
+            time.sleep(1.0)
+            self._dirty.clear()
+            self._restored.wait()
+            self._write_session()
 
     def handle_external(self, paths, show):
         """Files from a second launch / Explorer 'Convert with UltraShot'."""
@@ -413,12 +550,14 @@ class App:
             f = self.files.pop(fid, None)
         if f:
             self.emit("removed", fid)
+            self._dirty.set()
 
     def clear(self):
         with self.lock:
             keep = {fid: f for fid, f in self.files.items() if f["status"] == "working"}
             self.files = OrderedDict(keep)
         self.emit("cleared", list(keep.keys()))
+        self._dirty.set()
 
     def clear_done(self):
         """Drop finished cards (converted or skipped), keep everything still pending."""
@@ -426,6 +565,7 @@ class App:
             keep = {fid: f for fid, f in self.files.items() if f["status"] not in ("done", "skipped")}
             self.files = OrderedDict(keep)
         self.emit("cleared", list(keep.keys()))
+        self._dirty.set()
 
     def convert(self, ids=None):
         with self.lock:
@@ -437,6 +577,8 @@ class App:
                 self.convert_q.put(f["id"])
         for f in targets:
             self.emit("file", self.public(f))
+        if targets:
+            self._dirty.set()
         return len(targets)
 
     # ------------------------------------------------------------- preview cache
@@ -497,10 +639,12 @@ class App:
                 thumb, _, _ = self.render(small, gamut, THUMB_W, self.settings["exposure"],
                                           self.settings["knee"], self.settings["auto_sdr"])
                 f["stats"], f["thumb"] = stats, thumb
+                self._store_thumb(f, thumb)
             except Exception as e:
                 f["status"], f["error"] = "failed", f"{type(e).__name__}: {e}"
                 self.log(f"cannot read {f['name']}: {e}")
             self.emit("file", self.public(f))
+            self._dirty.set()
 
     def preview(self, fid, opts):
         with self.lock:
@@ -582,6 +726,7 @@ class App:
                 f["status"], f["error"] = "failed", f"{type(e).__name__}: {e}"
                 self.log(f"FAILED {f['name']}:\n{traceback.format_exc()}")
             self.emit("file", self.public(f))
+            self._dirty.set()
             if self.convert_q.empty():
                 self.emit("idle")
                 if f["status"] == "done":
@@ -781,6 +926,8 @@ class App:
     def shutdown(self):
         self.quitting = True
         self._watch_stop.set()
+        if self._restored.is_set():
+            self._write_session()        # whatever the debounce has not flushed yet
         if self.tray:
             try:
                 self.tray.stop()

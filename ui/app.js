@@ -60,6 +60,7 @@ window.app = {
         updateConvertButton();
         break;
       }
+      case "files": { for (const f of p) { if (!S.files.has(f.id)) S.order.push(f.id); S.files.set(f.id, f); } renderGrid(); updateProgress(); break; }
       case "removed": S.files.delete(p); S.order = S.order.filter((i) => i !== p); if (S.selected === p) closeInspector(); renderGrid(); updateProgress(); break;
       case "cleared": { const keep = new Set(p); for (const id of [...S.files.keys()]) if (!keep.has(id)) S.files.delete(id); S.order = S.order.filter((i) => keep.has(i)); closeInspector(); S.batch = null; renderGrid(); updateProgress(); break; }
       case "log": appendLog(p.t, p.msg); break;
@@ -244,6 +245,7 @@ const SECTIONS = [
   { title: "General", rows: [
     { key: "theme", lbl: "Theme", type: "seg", opts: [["system", "System"], ["light", "Light"], ["dark", "Dark"]] },
     { key: "notifications", lbl: "Notifications", hint: "Notify when images are converted in the background", type: "toggle" },
+    { key: "keep_list", lbl: "Remember the list", hint: "Restore the cards and their results at the next launch", type: "toggle" },
   ]},
   { title: "Output", rows: [
     { key: "make_full", lbl: "Full size", hint: "Full-resolution Ultra HDR JPEG, quality 100, 4:4:4", type: "toggle" },

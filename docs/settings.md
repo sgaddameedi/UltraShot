@@ -9,6 +9,7 @@ Delete the file to reset everything.
 | --- | --- | --- |
 | Theme | Dark | Dark, light or follow Windows |
 | Notifications | On | Tray balloon when a conversion finishes while the window is hidden |
+| Remember the list | On | The cards, their status and their results come back at the next launch. The list is kept in `session.json` next to the settings and thumbnails in `%LOCALAPPDATA%\UltraShot\thumbs`; the most recent 500 cards are kept, a card whose outputs were deleted goes back to pending, and a capture that has gone missing is dropped |
 
 ## Output
 

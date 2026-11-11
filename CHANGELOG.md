@@ -26,6 +26,12 @@ All notable changes to UltraShot are documented here. The format follows
 - The layout now adapts to the window: panes shrink to the space available and the oldest one closes
   when the window cannot hold them all, the bottom bar wraps on narrow windows, and the viewer's
   controls, compare stage and details panel fit windows down to 960 by 640.
+- The file list survives restarts. Cards, their status, statistics and results are written to
+  `session.json` beside the settings and come back at the next launch, with thumbnails served from
+  an on-disk cache so nothing is decoded again. A card whose outputs have been deleted returns to
+  pending, a capture that has gone missing is dropped, and the most recent 500 cards are kept.
+  Writes happen off the UI thread at most once a second. "Remember the list" in Settings turns
+  it off.
 - "Clear finished" removes completed cards from the list.
 - Settings and the log open as panes beside the file list, alongside the inspector, instead of
   covering the window.
