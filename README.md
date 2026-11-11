@@ -12,6 +12,8 @@
 
 # UltraShot: HDR game screenshots to Ultra HDR JPEG, for Instagram, Threads and the web
 
+<p align="center"><b>Website: <a href="https://sgaddameedi.github.io/UltraShot/">sgaddameedi.github.io/UltraShot</a></b> &nbsp;·&nbsp; <a href="https://github.com/sgaddameedi/UltraShot/releases/latest">Download for Windows</a> &nbsp;·&nbsp; <a href="docs/instagram.md">Instagram guide</a></p>
+
 UltraShot is a free, open-source Windows desktop application that converts HDR game screenshots into
 Ultra HDR JPEGs. It reads the JPEG XL (`.jxl`) screenshots that ReShade saves and the JPEG XR (`.jxr`)
 screenshots that the NVIDIA App and the Windows Game Bar save, and writes a gain-map JPEG that stays
@@ -78,20 +80,20 @@ of these controls affect the HDR layer, which is always written exactly as captu
 
 ## Screenshots
 
-<p align="center"><img src="docs/screenshots/main.png" width="90%" alt="The main window with four captures ready to convert"></p>
+<p align="center"><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/docs/screenshots/main.png"><img src="docs/screenshots/main.png" width="90%" alt="The main window with four captures ready to convert"></a></p>
 
 <table>
   <tr>
-    <td><img src="docs/screenshots/inspector.png" alt="The inspector with the live SDR preview"></td>
-    <td><img src="docs/screenshots/highlights-map.png" alt="The highlights map"></td>
+    <td><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/docs/screenshots/inspector.png"><img src="docs/screenshots/inspector.png" alt="The inspector with the live SDR preview"></a></td>
+    <td><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/docs/screenshots/highlights-map.png"><img src="docs/screenshots/highlights-map.png" alt="The highlights map"></a></td>
   </tr>
   <tr>
     <td align="center"><sub>The inspector: a live preview of the SDR base image with exposure and highlight-knee controls</sub></td>
     <td align="center"><sub>The highlights map: orange marks pixels above SDR white, pink marks pixels above 600 nits</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/instagram-crop.png" alt="The Instagram crop view"></td>
-    <td><img src="docs/screenshots/settings.png" alt="The settings page"></td>
+    <td><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/docs/screenshots/instagram-crop.png"><img src="docs/screenshots/instagram-crop.png" alt="The Instagram crop view"></a></td>
+    <td><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/docs/screenshots/settings.png"><img src="docs/screenshots/settings.png" alt="The settings page"></a></td>
   </tr>
   <tr>
     <td align="center"><sub>The Instagram output previewed with a 4:5 crop and position controls</sub></td>
@@ -107,24 +109,24 @@ see the base image, which is the point of the format. Click any of them to open 
 
 <table>
   <tr>
-    <td><a href="examples/gallery/phantom-blade-zero-lake-sunset.jpg"><img src="examples/gallery/phantom-blade-zero-lake-sunset.jpg" alt="Phantom Blade Zero, sunset over a lake, 4K Ultra HDR"></a></td>
-    <td><a href="examples/gallery/phantom-blade-zero-lantern-stairs.jpg"><img src="examples/gallery/phantom-blade-zero-lantern-stairs.jpg" alt="Phantom Blade Zero, lantern-lit stairs under a bright sky, 4K Ultra HDR"></a></td>
+    <td><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/gallery/phantom-blade-zero-lake-sunset.jpg"><img src="examples/gallery/phantom-blade-zero-lake-sunset.jpg" alt="Phantom Blade Zero, sunset over a lake, 4K Ultra HDR"></a></td>
+    <td><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/gallery/phantom-blade-zero-lantern-stairs.jpg"><img src="examples/gallery/phantom-blade-zero-lantern-stairs.jpg" alt="Phantom Blade Zero, lantern-lit stairs under a bright sky, 4K Ultra HDR"></a></td>
   </tr>
   <tr>
     <td align="center"><sub>Sunset over the lake. 18 % of the frame sits above SDR white; peak 2300 nits.</sub></td>
     <td align="center"><sub>Lantern stairs. Peak 2800 nits, 8 % of the frame above 600 nits.</sub></td>
   </tr>
   <tr>
-    <td><a href="examples/gallery/phantom-blade-zero-mountain-village.jpg"><img src="examples/gallery/phantom-blade-zero-mountain-village.jpg" alt="Phantom Blade Zero, a mountain village, 4K Ultra HDR"></a></td>
-    <td><a href="examples/gallery/phantom-blade-zero-golden-field.jpg"><img src="examples/gallery/phantom-blade-zero-golden-field.jpg" alt="Phantom Blade Zero, a golden field at dusk, 4K Ultra HDR"></a></td>
+    <td><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/gallery/phantom-blade-zero-mountain-village.jpg"><img src="examples/gallery/phantom-blade-zero-mountain-village.jpg" alt="Phantom Blade Zero, a mountain village, 4K Ultra HDR"></a></td>
+    <td><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/gallery/phantom-blade-zero-golden-field.jpg"><img src="examples/gallery/phantom-blade-zero-golden-field.jpg" alt="Phantom Blade Zero, a golden field at dusk, 4K Ultra HDR"></a></td>
   </tr>
   <tr>
     <td align="center"><sub>Mountain village. Peak 3100 nits.</sub></td>
     <td align="center"><sub>Golden field. 21 % of the frame above SDR white.</sub></td>
   </tr>
   <tr>
-    <td><a href="examples/gallery/crimson-desert-red-sunset.jpg"><img src="examples/gallery/crimson-desert-red-sunset.jpg" alt="Crimson Desert, red sunset over the mountains, 4K Ultra HDR"></a></td>
-    <td><a href="examples/gallery/crimson-desert-storm-sky.jpg"><img src="examples/gallery/crimson-desert-storm-sky.jpg" alt="Crimson Desert, storm clouds over a lone tower, 4K Ultra HDR"></a></td>
+    <td><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/gallery/crimson-desert-red-sunset.jpg"><img src="examples/gallery/crimson-desert-red-sunset.jpg" alt="Crimson Desert, red sunset over the mountains, 4K Ultra HDR"></a></td>
+    <td><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/gallery/crimson-desert-storm-sky.jpg"><img src="examples/gallery/crimson-desert-storm-sky.jpg" alt="Crimson Desert, storm clouds over a lone tower, 4K Ultra HDR"></a></td>
   </tr>
   <tr>
     <td align="center"><sub>Crimson Desert, red sunset. NVIDIA App capture, peak 2250 nits.</sub></td>
