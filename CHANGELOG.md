@@ -14,6 +14,11 @@ All notable changes to UltraShot are documented here. The format follows
   roll-off that caps highlights at your display's peak, for captures that carry brighter highlights
   than the display showed. Off by default; the only setting that alters the HDR layer.
 - "Clear finished" removes completed cards from the list.
+- Settings and the log open as panes beside the file list, alongside the inspector, instead of
+  covering the window.
+- Distribution: a winget manifest with automatic submission on release, and MSIX packaging for
+  the Microsoft Store (`packaging/msix`, guide in `docs/store.md`). The app detects a packaged run
+  and defers start-up and "Open with" to the package manifest.
 - Black-and-gold "Halo" identity, landing page on GitHub Pages, 4K HDR gallery.
 
 ### Fixed

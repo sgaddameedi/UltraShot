@@ -29,6 +29,11 @@ from PIL import Image
 import webview
 
 FROZEN = getattr(sys, "frozen", False)
+# Running from an MSIX / Microsoft Store package: the manifest sits next to the exe. The package
+# provides the startup task and the "Open with" association, so the shortcut/registry paths are
+# skipped. ULTRASHOT_PACKAGED=1 simulates this for testing.
+PACKAGED = (FROZEN and os.path.exists(os.path.join(os.path.dirname(sys.executable), "AppxManifest.xml"))) \
+    or os.environ.get("ULTRASHOT_PACKAGED") == "1"
 HERE = sys._MEIPASS if FROZEN else os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import jxl2uhdr  # noqa: E402
@@ -287,7 +292,7 @@ class App:
         with self.lock:
             return {"settings": self.settings, "files": [self.public(f) for f in self.files.values()],
                     "watching": self.watching, "version": VERSION, "codec": jxl2uhdr.ic.__version__,
-                    "frozen": FROZEN, "first_run": self.first_run}
+                    "frozen": FROZEN, "packaged": PACKAGED, "first_run": self.first_run}
 
     # ------------------------------------------------------------- files
     def add_paths(self, paths, auto_convert=False):
@@ -603,11 +608,19 @@ class App:
                 self.settings[k] = v
             save_settings(self.settings)
         if "startup" in patch:
-            try:
-                set_startup(self.settings["startup"])
-            except Exception as e:
-                self.toast(f"Could not change the startup shortcut: {e}", "err")
-        if "explorer_menu" in patch:
+            if PACKAGED:
+                # The Store package registers a startup task; Windows owns the switch.
+                self.toast("For the Store version, start-up is set in Windows Settings → Apps → Startup", "info")
+                try:
+                    os.startfile("ms-settings:startupapps")
+                except OSError:
+                    pass
+            else:
+                try:
+                    set_startup(self.settings["startup"])
+                except Exception as e:
+                    self.toast(f"Could not change the startup shortcut: {e}", "err")
+        if "explorer_menu" in patch and not PACKAGED:
             try:
                 set_explorer_menu(self.settings["explorer_menu"])
             except Exception as e:
@@ -625,6 +638,8 @@ class App:
 
     def apply_integrations(self):
         """Keep the Startup shortcut / Explorer entries pointing at this copy of the app."""
+        if PACKAGED:
+            return   # the package manifest provides both
         for key, fn in (("startup", set_startup), ("explorer_menu", set_explorer_menu)):
             if self.settings[key]:
                 try:
@@ -839,6 +854,14 @@ def main():
     args = sys.argv[1:]
     start_hidden = "--tray" in args
     initial = collect_images([a for a in args if not a.startswith("--")])
+    if PACKAGED and not initial and not start_hidden:
+        # A Store startup task cannot pass arguments; treat a launch in the first minutes after
+        # boot as the sign-in start and open in the tray, as the --tray shortcut does.
+        try:
+            import ctypes
+            start_hidden = ctypes.windll.kernel32.GetTickCount64() < 3 * 60 * 1000
+        except Exception:
+            pass
 
     # hand over to an instance that is already running (e.g. in the tray)
     if "--new-instance" not in args and send_to_running_instance(initial, show=not start_hidden):

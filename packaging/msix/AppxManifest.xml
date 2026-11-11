@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MSIX manifest for the Microsoft Store build of UltraShot.
+
+  Before packaging for the Store, replace the three PLACEHOLDER values with what Partner Center
+  shows under Product management > Product identity after you reserve the name "UltraShot":
+    Identity Name        -> "Package/Identity/Name"
+    Identity Publisher   -> "Package/Identity/Publisher"  (CN=... GUID string)
+    PublisherDisplayName -> "Package/Properties/PublisherDisplayName"
+  build_msix.ps1 can substitute them for you: -IdentityName, -Publisher, -PublisherDisplayName.
+  The Store signs the package; do not sign the upload yourself.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap3 uap5 desktop rescap">
+
+  <Identity Name="PLACEHOLDER.UltraShot" Publisher="CN=PLACEHOLDER" Version="1.1.0.0" ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>UltraShot</DisplayName>
+    <PublisherDisplayName>PLACEHOLDER</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <Description>Convert HDR game screenshots (ReShade .jxl, NVIDIA / Game Bar .jxr) into Ultra HDR JPEGs that stay HDR on Instagram, phones and browsers.</Description>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="UltraShot" Executable="UltraShot.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="UltraShot"
+        Description="HDR game screenshots, shared in HDR. Converts ReShade and NVIDIA / Game Bar captures into Ultra HDR JPEGs."
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile
+          Wide310x150Logo="Assets\Wide310x150Logo.png"
+          Square71x71Logo="Assets\SmallTile.png"
+          Square310x310Logo="Assets\LargeTile.png"
+          ShortName="UltraShot" />
+      </uap:VisualElements>
+      <Extensions>
+        <!-- "Start with Windows": the user enables it under Windows Settings > Apps > Startup,
+             or from the app, which opens that page. Store policy requires it off by default. -->
+        <desktop:Extension Category="windows.startupTask" Executable="UltraShot.exe" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="UltraShotStartup" Enabled="false" DisplayName="UltraShot" />
+        </desktop:Extension>
+        <!-- "Open with UltraShot" for HDR captures in Explorer -->
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="hdrcapture">
+            <uap:DisplayName>HDR screenshot</uap:DisplayName>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.jxl</uap:FileType>
+              <uap:FileType>.jxr</uap:FileType>
+            </uap:SupportedFileTypes>
+            <uap:Logo>Assets\StoreLogo.png</uap:Logo>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <!-- "ultrashot" on the command line -->
+        <uap3:Extension Category="windows.appExecutionAlias" Executable="UltraShot.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap3:AppExecutionAlias>
+            <desktop:ExecutionAlias Alias="ultrashot.exe" />
+          </uap3:AppExecutionAlias>
+        </uap3:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

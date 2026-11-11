@@ -25,3 +25,11 @@ desktop.ini
 !examples/*.jxr
 4K HDR/
 Insta/
+
+# MSIX packaging: fetched SDK tools and rendered assets
+packaging/msix/tools/
+packaging/msix/Assets/
+*.msix
+*.pfx
+*.cer
+

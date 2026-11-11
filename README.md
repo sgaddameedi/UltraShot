@@ -149,6 +149,10 @@ the one most ReShade users point their screenshots at, and registers itself to s
 the tray. Both behaviours can be changed in Settings; if you would rather it did nothing on its own,
 turn off *Convert new captures automatically* and *Start with Windows*.
 
+The same build is also published to winget as `sgaddameedi.UltraShot` (`winget install UltraShot`
+once the listing is accepted), and [docs/store.md](docs/store.md) describes how the Microsoft Store
+package is produced from it.
+
 ### Running from source
 
 The application is written in Python and runs from a checkout with the dependencies listed in

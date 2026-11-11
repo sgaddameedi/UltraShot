@@ -30,7 +30,7 @@ window.addEventListener("pywebviewready", async () => {
 function applyState(st) {
   S.settings = st.settings;
   S.watching = st.watching;
-  S.version = st.version; S.codec = st.codec;
+  S.version = st.version; S.codec = st.codec; S.packaged = !!st.packaged;
   appendLog(new Date().toTimeString().slice(0, 8), `UltraShot ${st.version} ready · libultrahdr via imagecodecs ${st.codec}` + (st.watching ? ` · watching ${st.settings.watch_dir}` : ""));
   S.files.clear(); S.order = [];
   for (const f of st.files) { S.files.set(f.id, f); S.order.push(f.id); }
@@ -309,6 +309,7 @@ function renderSettings() {
         n.innerHTML = `<b>UltraShot ${esc(S.version)}</b>Converts ReShade (.jxl) and NVIDIA / Game Bar (.jxr) HDR screenshots to Ultra HDR JPEGs with a gain map (ISO 21496-1 + XMP). Encoder: libultrahdr via imagecodecs ${esc(S.codec)}. Settings: %APPDATA%\\UltraShot\\settings.json`;
         box.appendChild(n); continue;
       }
+      if (S.packaged && (r.key === "explorer_menu")) continue;   // the Store package provides "Open with"
       const dep = typeof r.dep === "function" ? r.dep(s) : (r.dep ? !!s[r.dep] : true);
       const row = el("div", "row" + (r.sub ? " sub" : ""));
       if (!dep) row.style.opacity = ".45";
