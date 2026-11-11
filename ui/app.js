@@ -31,6 +31,7 @@ function applyState(st) {
   S.settings = st.settings;
   S.watching = st.watching;
   S.version = st.version; S.codec = st.codec;
+  appendLog(new Date().toTimeString().slice(0, 8), `UltraShot ${st.version} ready · libultrahdr via imagecodecs ${st.codec}` + (st.watching ? ` · watching ${st.settings.watch_dir}` : ""));
   S.files.clear(); S.order = [];
   for (const f of st.files) { S.files.set(f.id, f); S.order.push(f.id); }
   $("#ver").textContent = "v" + st.version;
@@ -289,7 +290,7 @@ const SECTIONS = [
 
 function renderSettings() {
   const body = $("#settingsBody");
-  if ($("#settings").classList.contains("hidden")) return;
+  if (!$("#settings").classList.contains("open")) return;
   const s = S.settings;
   body.innerHTML = "";
   for (const sec of SECTIONS) {
@@ -356,8 +357,11 @@ async function saveSetting(key, val) {
   if (["exposure", "knee", "auto_sdr", "ig_crop", "crop_x", "crop_y", "transfer", "ig_width"].includes(key)) requestPreview();
 }
 
-function openSettings() { $("#settings").classList.remove("hidden"); renderSettings(); }
-function closeSettings() { $("#settings").classList.add("hidden"); }
+function openSettings() { closeLog(); closeInspector(); $("#settings").classList.add("open"); renderSettings(); }
+function closeSettings() { $("#settings").classList.remove("open"); }
+function openLog() { closeSettings(); closeInspector(); $("#logdrawer").classList.add("open"); const pre = $("#logbody"); pre.scrollTop = pre.scrollHeight; }
+function closeLog() { $("#logdrawer").classList.remove("open"); }
+function toggleLog() { $("#logdrawer").classList.contains("open") ? closeLog() : openLog(); }
 
 /* ------------------------------------------------------------------ popovers, toasts, log */
 function popover(anchor, items) {
@@ -443,8 +447,8 @@ function bindUI() {
   $("#btnConvert").addEventListener("click", convertAll);
   $("#btnSettings").addEventListener("click", openSettings);
   $("#settingsBack").addEventListener("click", closeSettings);
-  $("#btnLog").addEventListener("click", () => $("#logdrawer").classList.toggle("hidden"));
-  $("#btnLogClose").addEventListener("click", () => $("#logdrawer").classList.add("hidden"));
+  $("#btnLog").addEventListener("click", toggleLog);
+  $("#btnLogClose").addEventListener("click", closeLog);
   $("#btnLogClear").addEventListener("click", () => { $("#logbody").innerHTML = ""; });
   $("#watchPill").addEventListener("click", () => S.api.set_watch(!S.watching));
   $("#inspClose").addEventListener("click", closeInspector);
@@ -499,7 +503,7 @@ function bindUI() {
     const lbOpen = !$("#lightbox").classList.contains("hidden");
     if (lbOpen && e.key === "ArrowLeft") { stepLightbox(-1); return; }
     if (lbOpen && e.key === "ArrowRight") { stepLightbox(1); return; }
-    if (e.key === "Escape") { if (lbOpen) closeLightbox(); else if (!$("#settings").classList.contains("hidden")) closeSettings(); else if (!$("#popover").classList.contains("hidden")) $("#popover").classList.add("hidden"); else closeInspector(); }
+    if (e.key === "Escape") { if (lbOpen) closeLightbox(); else if ($("#settings").classList.contains("open")) closeSettings(); else if ($("#logdrawer").classList.contains("open")) closeLog(); else if (!$("#popover").classList.contains("hidden")) $("#popover").classList.add("hidden"); else closeInspector(); }
     if (e.key === "Enter" && !e.ctrlKey && S.selected && document.activeElement.tagName !== "INPUT" && !lbOpen) openResult(S.selected);
     if (e.key === "Delete" && S.selected && document.activeElement.tagName !== "INPUT") S.api.remove(S.selected);
     if (e.ctrlKey && e.key.toLowerCase() === "o") { e.preventDefault(); S.api.pick_files(); }

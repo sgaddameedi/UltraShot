@@ -102,6 +102,9 @@ def main():
         js("document.querySelector('#popover').classList.add('hidden'); openSettings()")
         time.sleep(1.0)
         shot("settings.png")
+        js("closeSettings(); openLog()")
+        time.sleep(1.0)
+        shot("log.png")
         window.destroy()
 
     window.events.loaded += lambda: threading.Thread(target=flow, daemon=True).start()

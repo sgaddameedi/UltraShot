@@ -112,17 +112,17 @@
   </div>
 </aside>
 
-<div id="settings" class="page hidden">
+<div id="settings" class="page" aria-label="Settings">
   <div class="page-head">
-    <button class="iconbtn" id="settingsBack" title="Back">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-    </button>
     <h1>Settings</h1>
+    <button class="iconbtn small" id="settingsBack" title="Close (Esc)">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
   </div>
   <div class="page-body" id="settingsBody"></div>
 </div>
 
-<div id="logdrawer" class="drawer hidden">
+<div id="logdrawer" class="drawer" aria-label="Log">
   <div class="drawer-head"><span>Log</span><div><button class="ghost tiny" id="btnLogClear">Clear</button><button class="iconbtn small" id="btnLogClose"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>
   <pre id="logbody"></pre>
 </div>
