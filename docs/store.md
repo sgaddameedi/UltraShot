@@ -100,6 +100,9 @@ days for a package like this; the report arrives by email and in the dashboard.
 
 ## Updating
 
-Bump the version (for example `1.2.0.0`), rebuild with the same identity values, and create a new
-submission with the new package. Users receive the update through the Store automatically. Keep
-the zip release and the winget manifest in step so every channel offers the same version.
+Every tagged release builds the Store package automatically: the release workflow runs
+`build_msix.ps1` with the identity values and attaches `UltraShot-vX.Y.Z.msix` to the GitHub
+release next to the zip. To update the Store listing, download that file from the release page,
+start a new submission in Partner Center (it copies the previous listing forward), upload the
+package, and submit. Users receive the update through the Store automatically. The package version
+is the tag with a fourth `.0` component, so tags must keep increasing.

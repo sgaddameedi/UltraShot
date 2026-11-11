@@ -27,9 +27,20 @@ jobs:
       - run: cmd /c build_exe.bat -q
       - name: Zip
         run: Compress-Archive -Path dist\UltraShot\* -DestinationPath UltraShot-${{ github.ref_name }}-windows-x64.zip
+      - name: Store package (MSIX, unsigned; upload it in Partner Center)
+        shell: pwsh
+        run: |
+          $v = "${{ github.ref_name }}".TrimStart("v") + ".0"
+          .\packaging\msix\build_msix.ps1 -SkipBuild -Version $v `
+            -IdentityName "SharathGaddameedi.UltraShot" `
+            -Publisher "CN=787BFD2A-F573-4779-AC72-B51D76F8AA3F" `
+            -PublisherDisplayName "Sharath Gaddameedi"
+          Move-Item dist\UltraShot.msix "UltraShot-${{ github.ref_name }}.msix"
       - uses: softprops/action-gh-release@v2
         with:
-          files: UltraShot-${{ github.ref_name }}-windows-x64.zip
+          files: |
+            UltraShot-${{ github.ref_name }}-windows-x64.zip
+            UltraShot-${{ github.ref_name }}.msix
           generate_release_notes: true
 
   # Submits the new version to winget (microsoft/winget-pkgs) once the release exists.
