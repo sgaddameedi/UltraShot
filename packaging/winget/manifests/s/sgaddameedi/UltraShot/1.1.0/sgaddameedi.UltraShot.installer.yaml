@@ -11,6 +11,6 @@ ReleaseDate: 2026-11-11
 Installers:
 - Architecture: x64
   InstallerUrl: https://github.com/sgaddameedi/UltraShot/releases/download/v1.1.0/UltraShot-v1.1.0-windows-x64.zip
-  InstallerSha256: 005FE720E8F0A5AFAD1F0A694D0B49A17F60A18D23F54F5EE5619B8BB431CDC6
+  InstallerSha256: 9CDF25A6B3D84F24D90492FA3D056FF17698C1CCCA3F61BE29A488CDC8E18F0D
 ManifestType: installer
 ManifestVersion: 1.6.0
