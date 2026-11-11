@@ -474,12 +474,22 @@ async function loadInfo() {
   const kv = (k, v, cls) => { rows.push(`<div class="kv"><span>${k}</span><span class="${cls || ""}">${v}</span></div>`); lines.push(`${k}: ${String(v).replace(/<[^>]+>/g, "")}`); };
   const yn = (b, good) => b ? `<span class="${good === false ? "" : "ok"}">yes</span>` : `<span class="${good === false ? "" : "bad"}">no</span>`;
   lines.push(r.name);
+  const src = S.files.get(id)?.stats?.source;
+  if (src && src.format) {
+    sec("Source capture");
+    kv("Container", src.format + (src.format === "JPEG XL" ? " (ReShade)" : " (NVIDIA App / Game Bar)"));
+    kv("Pixel data", src.pixel_type); kv("Transfer curve", src.transfer); kv("Primaries", src.primaries);
+    kv("Channels", src.channels === 4 ? "RGBA" : "RGB"); kv("File size", fmtBytes(src.size_bytes));
+    kv("MaxCLL (brightest pixel)", `${Math.round(src.maxcll)} nits`); kv("MaxFALL (frame average)", `${src.maxfall.toFixed(1)} nits`);
+    kv("Peak as PQ code", `${src.peak_pq.toFixed(3)} (${Math.round(src.peak_pq * 1023)} / 1023)`);
+  }
   sec("File");
   kv("Name", esc(r.name)); kv("Size", fmtBytes(r.file.size_bytes)); kv("Modified", r.file.modified);
   kv("Ultra HDR (gain map found)", yn(r.file.ultra_hdr));
   sec("Base image (what SDR viewers see)");
   kv("Resolution", `${r.base.width}×${r.base.height}`); kv("Chroma subsampling", r.base.chroma + (r.base.chroma === "4:4:4" ? " (full colour)" : ""));
   kv("Estimated JPEG quality", r.base.quality_estimate ?? "—"); kv("Colour profile", r.base.icc_profile ? esc(r.base.icc_profile) : "none (sRGB assumed)");
+  kv("Transfer curve", "sRGB (gamma-encoded, 8-bit)");
   kv("Progressive", r.base.progressive ? "yes" : "no"); kv("Encoded size", fmtBytes(r.base.size_bytes));
   if (r.gainmap) {
     sec("Gain map");
@@ -495,7 +505,11 @@ async function loadInfo() {
     kv("Capacity matches boost", yn(m.capacity_matches_boost));
     kv("Gain map colour gamut", m.use_base_colour_gamut ? "base image's" : "HDR image's");
     sec("HDR as a viewer reconstructs it");
+    kv("Encoding", "linear gain over the base, relative to SDR white (203 nits); not PQ-coded");
     kv("Peak", `${Math.round(r.hdr.peak_nits)} nits`); kv("Mean", `${r.hdr.mean_nits.toFixed(1)} nits`);
+    kv("MaxCLL / MaxFALL", `${Math.round(r.hdr.maxcll)} / ${r.hdr.maxfall.toFixed(1)} nits`);
+    kv("Peak as PQ code", `${r.hdr.peak_pq.toFixed(3)} (${Math.round(r.hdr.peak_pq * 1023)} / 1023)`);
+    kv("Headroom needed for full HDR", `${r.hdr.headroom_stops.toFixed(2)} stops (${(2 ** r.hdr.headroom_stops).toFixed(2)}× SDR white)`);
     kv("Above SDR white (203 nits)", r.hdr.above_sdr_percent.toFixed(2) + "%"); kv("Above 1000 nits", r.hdr.above_1000_percent.toFixed(2) + "%");
   }
   sec("Metadata signalling");

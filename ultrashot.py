@@ -186,7 +186,11 @@ def inspect_ultrahdr(path):
     }
     hdr = ic.ultrahdr_decode(data, dtype=np.float16)[..., :3].astype(np.float32) * SDR_WHITE_NITS
     lum = hdr @ jxl2uhdr.LUMA_709
-    out["hdr"] = {"peak_nits": float(hdr.max()), "mean_nits": float(hdr.mean()),
+    peak = float(hdr.max())
+    out["hdr"] = {"peak_nits": peak, "mean_nits": float(hdr.mean()),
+                  "maxcll": float(lum.max()), "maxfall": float(lum.mean()),
+                  "peak_pq": float(jxl2uhdr.nits_to_pq(peak)),
+                  "headroom_stops": float(np.log2(max(peak, SDR_WHITE_NITS) / SDR_WHITE_NITS)),
                   "above_sdr_percent": float((lum > SDR_WHITE_NITS).mean() * 100.0),
                   "above_1000_percent": float((lum > 1000.0).mean() * 100.0)}
     return out
@@ -442,15 +446,19 @@ class App:
         if hit and hit[3] == mtime:
             self.cache.move_to_end(path)
             return hit[:3]
-        nits, gamut = jxl2uhdr.load_hdr(path, self.settings["transfer"], log=lambda m: None)
+        src = {}
+        nits, gamut = jxl2uhdr.load_hdr(path, self.settings["transfer"], log=lambda m: None, info=src)
         h, w = nits.shape[:2]
         lum = luminance(nits, gamut)
+        src.update(size_bytes=os.path.getsize(path), maxcll=float(lum.max()), maxfall=float(lum.mean()),
+                   peak_pq=float(jxl2uhdr.nits_to_pq(lum.max())))
         stats = dict(w=w, h=h, peak=float(nits.max()), mean=float(nits.mean()),
                      p99=float(np.percentile(lum, 99.5)),
                      above_sdr=float((lum > jxl2uhdr.SDR_WHITE_NITS).mean() * 100.0),
                      above_1k=float((lum > 1000.0).mean() * 100.0),
                      transfer=("scRGB (BT.709)" if gamut == jxl2uhdr.ic.ULTRAHDR.CG.BT_709 else "PQ (BT.2100)")
-                     + (" · JXR" if path.lower().endswith(".jxr") else " · JXL"))
+                     + (" · JXR" if path.lower().endswith(".jxr") else " · JXL"),
+                     source=src)
         small = jxl2uhdr.resize_linear(nits, PREVIEW_W)
         self.cache[path] = (small, gamut, stats, mtime)
         while len(self.cache) > CACHE_SIZE:

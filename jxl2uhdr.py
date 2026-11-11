@@ -194,8 +194,10 @@ def make_sdr(nits, gamut, exposure, knee):
     return out
 
 
-def load_hdr(path, transfer="auto", log=print):
+def load_hdr(path, transfer="auto", log=print, info=None):
     """Decode an HDR screenshot to linear nits (float32 HxWx3). Returns (nits, gamut).
+    If `info` is a dict it is filled with what the container held: format, dtype, bits, transfer,
+    primaries.
 
     JPEG XL (ReShade): float16 scRGB or 16-bit PQ/HLG.
     JPEG XR (NVIDIA App, Windows Game Bar, Xbox): float16/float32 scRGB, 1.0 == 80 nits.
@@ -204,8 +206,10 @@ def load_hdr(path, transfer="auto", log=print):
         data = f.read()
     if ic.jpegxl_check(data):
         img = ic.jpegxl_decode(data)
+        fmt = "JPEG XL"
     elif ic.jpegxr_check(data):
         img = ic.jpegxr_decode(data)
+        fmt = "JPEG XR"
     else:
         raise ValueError("input is not a JPEG XL or JPEG XR file")
     if img.ndim != 3 or img.shape[2] not in (3, 4):
@@ -237,6 +241,13 @@ def load_hdr(path, transfer="auto", log=print):
     nits = np.maximum(nits, 0.0)  # HDR layer: never exposure-adjusted
     log(f"{path}: {rgb.shape[1]}x{rgb.shape[0]} {rgb.dtype} as {transfer}; "
         f"peak {nits.max():.0f} nits, mean {nits.mean():.1f} nits")
+    if info is not None:
+        bits = rgb.dtype.itemsize * 8
+        info.update(format=fmt, dtype=str(rgb.dtype), bits=bits, channels=img.shape[2],
+                    pixel_type=(f"{bits}-bit float, linear scRGB (1.0 = 80 nits)" if transfer == "scrgb"
+                                else f"{bits}-bit integer, {transfer.upper()} code values"),
+                    transfer={"scrgb": "linear (scRGB)", "pq": "PQ (SMPTE ST 2084)", "hlg": "HLG (BT.2100)"}[transfer],
+                    primaries="BT.709 / sRGB" if gamut == ic.ULTRAHDR.CG.BT_709 else "BT.2020 / BT.2100")
     return nits, gamut
 
 
