@@ -1,26 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="UltraShot logo">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#4f8cff"/>
-      <stop offset="1" stop-color="#b35cff"/>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFD166"/>
+      <stop offset="1" stop-color="#FF7A00"/>
     </linearGradient>
-    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#ffe6a0" stop-opacity="0.85"/>
-      <stop offset="1" stop-color="#ffe6a0" stop-opacity="0"/>
-    </radialGradient>
   </defs>
-  <rect x="4" y="4" width="248" height="248" rx="56" fill="url(#bg)"/>
-  <circle cx="128" cy="128" r="84" fill="url(#glow)"/>
-  <g stroke="#fff" stroke-width="14" stroke-linecap="round">
-    <line x1="128" y1="59" x2="128" y2="36"/>
-    <line x1="128" y1="197" x2="128" y2="220"/>
-    <line x1="59" y1="128" x2="36" y2="128"/>
-    <line x1="197" y1="128" x2="220" y2="128"/>
-    <line x1="79" y1="79" x2="63" y2="63"/>
-    <line x1="177" y1="177" x2="193" y2="193"/>
-    <line x1="79" y1="177" x2="63" y2="193"/>
-    <line x1="177" y1="79" x2="193" y2="63"/>
-  </g>
-  <circle cx="128" cy="128" r="41" fill="#fff"/>
-  <circle cx="128" cy="128" r="20" fill="#ffd666"/>
+  <rect width="256" height="256" rx="59" fill="#060608"/>
+  <circle cx="128" cy="128" r="88" fill="none" stroke="#2C2C32" stroke-width="12"/>
+  <circle cx="128" cy="128" r="60" fill="none" stroke="#606068" stroke-width="12"/>
+  <circle cx="128" cy="128" r="33" fill="none" stroke="url(#gold)" stroke-width="14"/>
+  <path d="M128 40 A88 88 0 0 1 216 128" fill="none" stroke="url(#gold)" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="128" cy="128" r="13" fill="#FFFFFF"/>
 </svg>

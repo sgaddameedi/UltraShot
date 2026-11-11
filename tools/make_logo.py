@@ -21,12 +21,12 @@ def font(path, size):
 
 
 def aurora(w, h):
-    bg = Image.new("RGB", (w, h), (14, 16, 20))
-    glow = Image.new("RGB", (w, h), (14, 16, 20))
+    bg = Image.new("RGB", (w, h), (6, 6, 8))
+    glow = Image.new("RGB", (w, h), (6, 6, 8))
     d = ImageDraw.Draw(glow)
-    d.ellipse((-w * 0.1, -h * 0.4, w * 0.45, h * 0.9), fill=(40, 60, 120))
-    d.ellipse((w * 0.55, -h * 0.5, w * 1.1, h * 0.7), fill=(80, 40, 120))
-    d.ellipse((w * 0.3, h * 0.6, w * 0.8, h * 1.5), fill=(20, 70, 60))
+    d.ellipse((-w * 0.1, -h * 0.4, w * 0.45, h * 0.9), fill=(70, 48, 8))
+    d.ellipse((w * 0.55, -h * 0.5, w * 1.1, h * 0.7), fill=(92, 42, 0))
+    d.ellipse((w * 0.3, h * 0.6, w * 0.8, h * 1.5), fill=(42, 30, 6))
     glow = glow.filter(ImageFilter.GaussianBlur(w * 0.09))
     return Image.blend(bg, glow, 0.75)
 
@@ -39,13 +39,13 @@ def banner(path, w, h, tagline=True):
     d = ImageDraw.Draw(img)
     tx = ix + icon.width + int(h * 0.09)
     f1 = font(FONT_BOLD, int(h * 0.26))
-    d.text((tx, iy - int(h * 0.02)), "UltraShot", font=f1, fill=(235, 238, 245))
+    d.text((tx, iy - int(h * 0.02)), "UltraShot", font=f1, fill=(246, 243, 236))
     if tagline:
         f2 = font(FONT_REG, int(h * 0.075))
-        d.text((tx + 4, iy + int(h * 0.30)), "HDR screenshots, shared in HDR.", font=f2, fill=(160, 170, 195))
+        d.text((tx + 4, iy + int(h * 0.30)), "HDR screenshots, shared in HDR.", font=f2, fill=(255, 193, 77))
         f3 = font(FONT_REG, int(h * 0.055))
         d.text((tx + 4, iy + int(h * 0.41)), "ReShade .jxl  ·  NVIDIA / Game Bar .jxr   →   Ultra HDR JPEG",
-               font=f3, fill=(120, 130, 155))
+               font=f3, fill=(150, 142, 128))
     img.convert("RGB").save(path, optimize=True)
     print("wrote", path)
 
