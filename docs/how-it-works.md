@@ -1,4 +1,4 @@
-# How UltraShot works
+# How UltraShot converts HDR screenshots to Ultra HDR gain-map JPEGs
 
 The entire conversion pipeline is contained in one module, `jxl2uhdr.py`, and the desktop application
 is a shell around it: it decides which files to convert and with which settings, and the module does

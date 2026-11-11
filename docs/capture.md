@@ -1,4 +1,4 @@
-# Capturing HDR screenshots
+# Capturing HDR screenshots with ReShade, the NVIDIA App and the Windows Game Bar
 
 UltraShot can only preserve what the capture tool recorded, so the quality of the result is decided
 at capture time. This guide covers the three tools on Windows that write genuine HDR files and the

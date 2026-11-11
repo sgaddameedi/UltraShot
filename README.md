@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/banner.png" alt="UltraShot" width="100%">
+  <img src="docs/banner.png" alt="UltraShot, an HDR screenshot to Ultra HDR JPEG converter for Windows" width="100%">
 </p>
 
 <p align="center">
@@ -10,12 +10,16 @@
   <a href="https://github.com/sgaddameedi/UltraShot/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/sgaddameedi/UltraShot/ci.yml?style=flat-square&label=tests"></a>
 </p>
 
-UltraShot is a Windows desktop application that converts HDR game screenshots into Ultra HDR JPEGs. An
-Ultra HDR JPEG is an ordinary JPEG that carries a second, compact image called a gain map, which tells an
-HDR-capable display how much brighter each pixel should be shown. The result is a single file that
-displays as a normal photograph on any screen or service, and as a genuine HDR image on phones,
-browsers and social platforms that understand the format, including Instagram, Threads, Google Photos,
-Chrome, Edge and Android.
+# UltraShot: HDR game screenshots to Ultra HDR JPEG, for Instagram, Threads and the web
+
+UltraShot is a free, open-source Windows desktop application that converts HDR game screenshots into
+Ultra HDR JPEGs. It reads the JPEG XL (`.jxl`) screenshots that ReShade saves and the JPEG XR (`.jxr`)
+screenshots that the NVIDIA App and the Windows Game Bar save, and writes a gain-map JPEG that stays
+HDR when it is posted to Instagram or Threads, uploaded to Google Photos, or opened in Chrome or Edge
+on an HDR display. An Ultra HDR JPEG is an ordinary JPEG that carries a second, compact image called a
+gain map, which tells an HDR-capable display how much brighter each pixel should be shown. The result
+is a single file that displays as a normal photograph on any screen or service, and as a genuine HDR
+image on phones, browsers and social platforms that understand the format.
 
 The application accepts the lossless JPEG XL files written by ReShade and the JPEG XR files written by
 the NVIDIA App and the Windows Game Bar, converts them with Google's libultrahdr encoder, and takes care
@@ -24,7 +28,7 @@ gain-map metadata is written so that phones apply the full HDR range rather than
 cropping and resizing for Instagram happen before upload, at full quality, so that Instagram's own
 processing has no reason to discard the HDR layer.
 
-## Why this project exists
+## Why HDR screenshots are so hard to share
 
 Modern games render in HDR, and a well-composed HDR screenshot can be striking. Sharing one is another
 matter. The capture tools that preserve HDR save files that almost nothing else can open, and the
@@ -49,7 +53,7 @@ image, which is what most viewers will see, deserves to be tone-mapped with some
 clipped. UltraShot handles each of these, and wraps the result in an application that fits into a
 capture workflow instead of interrupting it.
 
-## What it does
+## From ReShade JXL and NVIDIA JXR to Ultra HDR JPEG
 
 UltraShot converts ReShade JPEG XL captures (scRGB float or HDR10 PQ and HLG) and NVIDIA App and Game
 Bar JPEG XR captures (scRGB float) into Ultra HDR JPEGs. Each capture produces a full-resolution file
@@ -172,7 +176,7 @@ HDR display will actually do with the image, which the SDR preview cannot show.
 None of these controls change the HDR layer. The scene brightness captured by the game is what the HDR
 viewer reconstructs, whatever the SDR base looks like.
 
-### Preparing an Instagram post
+### Posting HDR screenshots to Instagram
 
 Instagram displays gain-map JPEGs in HDR, but its upload flow removes the gain map the moment the image
 is cropped, resized or filtered. The practical rule is that the image must be finished before it is
@@ -190,7 +194,7 @@ a shortcut in the Startup folder launches the application hidden at sign-in. The
 include subfolders, which matters for NVIDIA App captures because the NVIDIA App keeps a separate
 subfolder for each game. Notifications announce finished conversions while the window is hidden.
 
-## Supported sources
+## Supported HDR screenshot formats
 
 | Capture tool | File | Contents | Notes |
 | --- | --- | --- | --- |
@@ -201,7 +205,7 @@ subfolder for each game. Notifications announce finished conversions while the w
 Float input is interpreted as scRGB and 16-bit input as PQ. Games that output HLG are rare; for them,
 *Input transfer* in Settings can be set to HLG.
 
-## How the conversion works
+## How the gain-map conversion works
 
 The conversion engine lives in a single module, `jxl2uhdr.py`, and the application is a shell around
 it. A detailed description is in [docs/how-it-works.md](docs/how-it-works.md); in outline, the process
@@ -264,25 +268,34 @@ runs the same build on GitHub Actions and attaches the zipped result to a releas
 
 ## Frequently asked questions
 
-**The converted image looks identical to SDR on my phone.** The viewing application has to support
+**Why does the converted image look like SDR on my phone?** The viewing application has to support
 gain maps, and the display has to be in a mode that permits HDR. Google Photos, Chrome, Instagram,
 Threads and Samsung Gallery all qualify; most messaging applications re-encode images and strip the
 gain map, and Windows Photos does not render gain maps at all. Sending the file through a messaging
 application as a document rather than a photo usually preserves it.
 
-**Instagram shows the post dim, or in SDR.** The image was cropped, zoomed, filtered or otherwise
+**Why does Instagram show my HDR screenshot dim, or in SDR?** The image was cropped, zoomed, filtered or otherwise
 adjusted during upload, or was uploaded from an iPhone, which transcodes it. See
 [docs/instagram.md](docs/instagram.md).
 
-**UltraShot reports that the input looks like an SDR screenshot.** The file contains 8-bit data, which
+**Why does UltraShot say the input looks like an SDR screenshot?** The file contains 8-bit data, which
 means the game or Windows was not in HDR mode when the capture was taken. Both have to be enabled.
 
-**The SDR preview of an HDR10 game looks washed out.** HDR10 titles frequently sit far below 203 nits
+**Why does the SDR preview of an HDR10 game look washed out?** HDR10 titles frequently sit far below 203 nits
 on average, so the base image can look flat at the default settings. Raise the exposure or lower the
 knee in the inspector until it looks right; the HDR layer is unaffected.
 
-**A card says "subtle HDR".** Fewer than half a percent of the pixels exceed SDR white, which simply
+**What does "subtle HDR" on a card mean?** Fewer than half a percent of the pixels exceed SDR white, which simply
 describes the scene. The highlights that do exist are carried in full.
+
+**How do I open a ReShade .jxl or an NVIDIA .jxr screenshot?** Very little software reads either
+format, which is the problem UltraShot exists to solve. Drop the file onto UltraShot and the Ultra HDR
+JPEG it writes opens anywhere a JPEG does, in HDR wherever gain maps are supported. The engine can also
+be called from the command line, as described under [Command-line use](#command-line-use).
+
+**Is an Ultra HDR JPEG a real HDR image or just a brighter JPEG?** It is a real HDR image. The gain map
+stores, per pixel, how far the scene exceeds the SDR base, and an HDR viewer reconstructs the captured
+brightness from it. UltraShot never tone-maps the HDR layer; only the SDR fallback is adjusted.
 
 Further questions and failure modes are covered in [docs/troubleshooting.md](docs/troubleshooting.md).
 

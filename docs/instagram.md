@@ -1,4 +1,4 @@
-# Posting HDR to Instagram and Threads
+# Posting HDR screenshots to Instagram and Threads
 
 Instagram and Threads both display gain-map JPEGs in HDR on phones that support it, which at the time
 of writing means Android devices running version 14 or later with an HDR-capable screen, and recent

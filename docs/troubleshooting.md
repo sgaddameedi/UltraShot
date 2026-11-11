@@ -1,4 +1,4 @@
-# Troubleshooting
+# Troubleshooting HDR screenshot conversion
 
 Most problems fall into one of three groups: the application itself, the conversion, or the way the
 result is displayed somewhere else. Whichever it is, the Log drawer (the terminal icon in the top bar)
