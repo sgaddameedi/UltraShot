@@ -85,12 +85,12 @@ A converter with no network access answers "no" to everything and receives an al
 
 - *What's new in this version:* copy the matching section of `CHANGELOG.md`.
 - *App features* (one per line): Converts ReShade .jxl and NVIDIA / Game Bar .jxr HDR captures; Ultra HDR JPEG output that stays HDR on Instagram, Threads, Google Photos and Chrome; Watch folder converts new captures automatically; Live SDR preview with exposure and highlight controls; Instagram-ready crop and resize; Runs from the tray, starts with Windows.
-- *Screenshots:* use `docs/screenshots/main.png`, `inspector.png`, `instagram-crop.png`,
-  `highlights-map.png` and `settings.png`. They are 1280×840; the Store accepts anything from
-  1366×768 upward for desktop, so upload the same scenes at 1920×1080 by running
-  `python tools/screenshots.py` with the window maximised, or resize the window before capturing.
-- *Store logos:* the 300×300 and 2400×1200 images Partner Center asks for can be rendered with
-  `python tools/make_logo.py` and `packaging/msix/make_assets.py`.
+- *Screenshots:* 1920×1080 captures of every screen are produced by
+  `SHOT_W=1920 SHOT_H=1080 SHOT_OUT=packaging/msix/store-listing/screenshots python tools/screenshots.py`
+  (on PowerShell set the three variables with `$env:` first). Upload `main`, `inspector`,
+  `instagram-crop`, `highlights-map`, `panes-side-by-side` and `settings`.
+- *Store logos:* `python packaging/msix/make_store_images.py` renders the 300×300 logo, the
+  2400×1200 poster and a 1920×1080 banner into `packaging/msix/store-listing/`.
 - *Search terms:* HDR screenshot, Ultra HDR, gain map, Instagram HDR, ReShade, JXR, JXL.
 - *Copyright and trademark:* `© 2026 Sharath Gaddameedi. MIT licence.`
 - *Support contact:* the GitHub issues page.

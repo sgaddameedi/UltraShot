@@ -20,8 +20,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 import ultrashot as U  # noqa: E402
 
-OUT = os.path.join(ROOT, "docs", "screenshots")
-W, H = 1280, 840
+OUT = os.environ.get("SHOT_OUT") or os.path.join(ROOT, "docs", "screenshots")
+W, H = int(os.environ.get("SHOT_W", 1280)), int(os.environ.get("SHOT_H", 840))   # SHOT_W=1920 SHOT_H=1080 for Store listings
 
 
 def grab_window(title, path):

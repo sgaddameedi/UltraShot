@@ -33,3 +33,5 @@ packaging/msix/Assets/
 *.pfx
 *.cer
 
+packaging/msix/store-listing/
+
