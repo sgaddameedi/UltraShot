@@ -32,19 +32,23 @@ def aurora(w, h):
 
 
 def banner(path, w, h, tagline=True):
+    """Icon on the left, name and tagline on the right. The block is about 1.3 times the reference
+    height wide, so on canvases squarer than 2:1 (16:9 hero art) everything is sized from the width
+    instead of the height and nothing runs off the right edge."""
     img = aurora(w, h).convert("RGBA")
-    icon = make_icon.draw(int(h * 0.42))
-    ix, iy = int(w * 0.09), (h - icon.height) // 2 - (int(h * 0.03) if tagline else 0)
+    s = min(h, w / 2.0)                       # the height of an equivalent 2:1 canvas
+    icon = make_icon.draw(int(s * 0.42))
+    ix, iy = int(w * 0.09), (h - icon.height) // 2 - (int(s * 0.03) if tagline else 0)
     img.alpha_composite(icon, (ix, iy))
     d = ImageDraw.Draw(img)
-    tx = ix + icon.width + int(h * 0.09)
-    f1 = font(FONT_BOLD, int(h * 0.26))
-    d.text((tx, iy - int(h * 0.02)), "UltraShot", font=f1, fill=(246, 243, 236))
+    tx = ix + icon.width + int(s * 0.09)
+    f1 = font(FONT_BOLD, int(s * 0.26))
+    d.text((tx, iy - int(s * 0.02)), "UltraShot", font=f1, fill=(246, 243, 236))
     if tagline:
-        f2 = font(FONT_REG, int(h * 0.075))
-        d.text((tx + 4, iy + int(h * 0.30)), "HDR screenshots, shared in HDR.", font=f2, fill=(255, 193, 77))
-        f3 = font(FONT_REG, int(h * 0.055))
-        d.text((tx + 4, iy + int(h * 0.41)), "ReShade .jxl  ·  NVIDIA / Game Bar .jxr   →   Ultra HDR JPEG",
+        f2 = font(FONT_REG, int(s * 0.075))
+        d.text((tx + 4, iy + int(s * 0.30)), "HDR screenshots, shared in HDR.", font=f2, fill=(255, 193, 77))
+        f3 = font(FONT_REG, int(s * 0.055))
+        d.text((tx + 4, iy + int(s * 0.41)), "ReShade .jxl  ·  NVIDIA / Game Bar .jxr   →   Ultra HDR JPEG",
                font=f3, fill=(150, 142, 128))
     img.convert("RGB").save(path, optimize=True)
     print("wrote", path)
