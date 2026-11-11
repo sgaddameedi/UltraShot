@@ -197,7 +197,12 @@ as a card showing a thumbnail of its SDR rendering, its resolution and source fo
 value in the frame in nits, and a short classification of how much of the frame exceeds SDR white.
 *Convert* processes every card in turn; *Convert selected* in the inspector processes one. Captures
 whose outputs already exist are skipped unless *Overwrite existing outputs* is enabled, so it is safe
-to drop an entire folder repeatedly. Double-clicking a finished card reveals its output in Explorer.
+to drop an entire folder repeatedly. Double-clicking a finished card opens the result: in your
+default viewer when it is the only one, or in the built-in viewer that steps through every converted
+capture and, on an HDR display, shows the gain-map JPEG in HDR. Its *Info* panel reads the finished
+file back and lists what it actually contains, from chroma subsampling and the embedded colour
+profile to the gain-map metadata and the peak brightness a phone will reconstruct, with a
+*Copy report* button for bug reports.
 
 ### Adjusting the SDR base image
 

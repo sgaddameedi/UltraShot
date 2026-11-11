@@ -420,7 +420,7 @@ function appendLog(t, msg) {
 }
 
 /* ------------------------------------------------------------------ result viewer */
-const LB = { ids: [], i: 0, which: "ig", path: null, seq: 0 };
+const LB = { ids: [], i: 0, which: "ig", path: null, seq: 0, info: false, report: "" };
 
 function convertedIds() { return S.order.filter((id) => { const f = S.files.get(id); return f && f.outputs && f.outputs.length; }); }
 
@@ -457,6 +457,53 @@ async function showLightbox() {
   $("#lbWhich").querySelectorAll("button").forEach((b) => { b.classList.toggle("on", b.dataset.v === r.which); b.disabled = (b.dataset.v === "full" && !r.has_full) || (b.dataset.v === "ig" && !r.has_ig); });
   $("#lbFoot").textContent = `${r.path.split(/[\\/]/).slice(-2).join("\\")} · ${(r.size / 1e6).toFixed(1)} MB · gain-map JPEG, shown in HDR when this display is in HDR mode`;
   $("#lbPrev").style.visibility = $("#lbNext").style.visibility = LB.ids.length > 1 ? "visible" : "hidden";
+  if (LB.info) loadInfo();
+}
+
+const fmtBytes = (b) => b >= 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.round(b / 1e3) + " KB";
+const fmt3 = (a) => a.every((v) => Math.abs(v - a[0]) < 1e-4) ? a[0].toFixed(3) : a.map((v) => v.toFixed(3)).join(" / ");
+
+async function loadInfo() {
+  const id = LB.ids[LB.i];
+  const body = $("#lbInfoBody");
+  body.innerHTML = `<div class="kv"><span>Reading the file…</span><span class="spinner"></span></div>`;
+  const r = await S.api.output_info(id, LB.which);
+  if (!r || r.error) { body.innerHTML = `<div class="kv"><span>Error</span><span class="bad">${esc(r?.error || "no output")}</span></div>`; return; }
+  const rows = [], lines = [];
+  const sec = (t) => { rows.push(`<h4>${t}</h4>`); lines.push("", t.toUpperCase()); };
+  const kv = (k, v, cls) => { rows.push(`<div class="kv"><span>${k}</span><span class="${cls || ""}">${v}</span></div>`); lines.push(`${k}: ${String(v).replace(/<[^>]+>/g, "")}`); };
+  const yn = (b, good) => b ? `<span class="${good === false ? "" : "ok"}">yes</span>` : `<span class="${good === false ? "" : "bad"}">no</span>`;
+  lines.push(r.name);
+  sec("File");
+  kv("Name", esc(r.name)); kv("Size", fmtBytes(r.file.size_bytes)); kv("Modified", r.file.modified);
+  kv("Ultra HDR (gain map found)", yn(r.file.ultra_hdr));
+  sec("Base image (what SDR viewers see)");
+  kv("Resolution", `${r.base.width}×${r.base.height}`); kv("Chroma subsampling", r.base.chroma + (r.base.chroma === "4:4:4" ? " (full colour)" : ""));
+  kv("Estimated JPEG quality", r.base.quality_estimate ?? "—"); kv("Colour profile", r.base.icc_profile ? esc(r.base.icc_profile) : "none (sRGB assumed)");
+  kv("Progressive", r.base.progressive ? "yes" : "no"); kv("Encoded size", fmtBytes(r.base.size_bytes));
+  if (r.gainmap) {
+    sec("Gain map");
+    kv("Resolution", `${r.gainmap.width}×${r.gainmap.height}` + (r.gainmap.width === r.base.width ? " (full)" : " (reduced)"));
+    kv("Channels", r.gainmap.mode === "RGB" || r.metadata.multichannel ? "per channel (RGB)" : "single"); kv("Chroma subsampling", r.gainmap.chroma);
+    kv("Estimated JPEG quality", r.gainmap.quality_estimate ?? "—"); kv("Encoded size", fmtBytes(r.gainmap.size_bytes));
+    const m = r.metadata;
+    sec("Gain map metadata");
+    kv("Max content boost", `${fmt3(m.max_content_boost)}× (${Math.round(m.peak_nits_declared)} nits)`);
+    kv("Min content boost", fmt3(m.min_content_boost) + "×"); kv("Gamma", fmt3(m.gamma));
+    kv("Offsets (SDR / HDR)", `${m.offset_sdr[0].toExponential(1)} / ${m.offset_hdr[0].toExponential(1)}`);
+    kv("HDR capacity min", m.hdr_capacity_min.toFixed(2) + "×"); kv("HDR capacity max", m.hdr_capacity_max.toFixed(2) + "×");
+    kv("Capacity matches boost", yn(m.capacity_matches_boost));
+    kv("Gain map colour gamut", m.use_base_colour_gamut ? "base image's" : "HDR image's");
+    sec("HDR as a viewer reconstructs it");
+    kv("Peak", `${Math.round(r.hdr.peak_nits)} nits`); kv("Mean", `${r.hdr.mean_nits.toFixed(1)} nits`);
+    kv("Above SDR white (203 nits)", r.hdr.above_sdr_percent.toFixed(2) + "%"); kv("Above 1000 nits", r.hdr.above_1000_percent.toFixed(2) + "%");
+  }
+  sec("Metadata signalling");
+  kv("ISO 21496-1 (Android 15, iOS 18, Chrome)", yn(r.signalling.iso_21496));
+  kv("XMP hdrgm (older Android, Adobe)", yn(r.signalling.xmp_hdrgm));
+  kv("MPF container", yn(r.signalling.mpf)); kv("ICC profile segment", yn(r.signalling.icc, false)); kv("EXIF", yn(r.signalling.exif, false));
+  body.innerHTML = rows.join("");
+  LB.report = lines.join("\n");
 }
 
 /* ------------------------------------------------------------------ actions */
@@ -487,6 +534,9 @@ function bindUI() {
   $("#lbOpen").addEventListener("click", () => { if (LB.path) S.api.open_path(LB.path); });
   $("#lbReveal").addEventListener("click", () => { if (LB.path) S.api.reveal(LB.path); });
   $("#lbWhich").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { LB.which = b.dataset.v; showLightbox(); } });
+  $("#lbInfo").addEventListener("click", () => { LB.info = !LB.info; $("#lbInfoPanel").classList.toggle("hidden", !LB.info); if (LB.info) loadInfo(); });
+  $("#lbInfoClose").addEventListener("click", () => { LB.info = false; $("#lbInfoPanel").classList.add("hidden"); });
+  $("#lbCopyReport").addEventListener("click", async () => { try { await navigator.clipboard.writeText(LB.report || ""); toast("Report copied", "ok"); } catch (e) { toast("Could not copy", "err"); } });
   $("#lightbox").addEventListener("click", (e) => { if (e.target.id === "lightbox" || e.target.classList.contains("lb-stage")) closeLightbox(); });
   $("#inspTarget").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; S.inspTarget = b.dataset.v; renderInspectorControls(); requestPreview(); });
   $("#inspCrop").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) saveSetting("ig_crop", b.dataset.v); });

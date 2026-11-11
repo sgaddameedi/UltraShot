@@ -38,6 +38,9 @@ HERE = sys._MEIPASS if FROZEN else os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import jxl2uhdr  # noqa: E402
 
+ic = jxl2uhdr.ic
+SDR_WHITE_NITS = jxl2uhdr.SDR_WHITE_NITS
+
 APP_NAME = "UltraShot"
 APP_ID = "UltraShot"
 VERSION = "1.1.0"
@@ -114,6 +117,79 @@ def jpeg_data_url(rgb, quality=86):
     buf = io.BytesIO()
     im.save(buf, "JPEG", quality=quality, subsampling=0)
     return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+
+
+_STD_LUMA_SUM = 4062.0   # sum of the IJG reference luminance quantisation table (quality 50)
+
+
+def jpeg_quality_estimate(quant_tables):
+    """Approximate the JPEG quality a file was saved with from its luminance quantisation table.
+    Inverts the libjpeg scaling rule; exact for libjpeg-style encoders, close for others."""
+    if not quant_tables:
+        return None
+    table = quant_tables.get(0) or next(iter(quant_tables.values()))
+    scale = sum(table) / _STD_LUMA_SUM * 100.0
+    q = 5000.0 / scale if scale >= 100 else (200.0 - scale) / 2.0
+    return int(round(min(100.0, max(1.0, q))))
+
+
+def inspect_ultrahdr(path):
+    """Read an Ultra HDR JPEG back and describe it: file, base image, gain map, metadata, HDR."""
+    from PIL import JpegImagePlugin
+    try:
+        from PIL import ImageCms
+    except Exception:   # pragma: no cover
+        ImageCms = None
+    data = open(path, "rb").read()
+    st = os.stat(path)
+    is_uhdr = bool(ic.ultrahdr_check(data))
+    out = {"path": path, "name": os.path.basename(path),
+           "file": {"size_bytes": len(data), "modified": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(st.st_mtime)),
+                    "ultra_hdr": is_uhdr}}
+
+    def describe_jpeg(b):
+        im = Image.open(io.BytesIO(b))
+        sampling = {0: "4:4:4", 1: "4:2:2", 2: "4:2:0"}.get(JpegImagePlugin.get_sampling(im), "unknown")
+        icc = im.info.get("icc_profile")
+        icc_name = None
+        if icc and ImageCms:
+            try:
+                icc_name = ImageCms.getProfileDescription(ImageCms.ImageCmsProfile(io.BytesIO(icc))).strip()
+            except Exception:
+                icc_name = "embedded"
+        elif icc:
+            icc_name = "embedded"
+        return {"width": im.width, "height": im.height, "mode": im.mode, "chroma": sampling,
+                "progressive": bool(im.info.get("progressive")), "quality_estimate": jpeg_quality_estimate(getattr(im, "quantization", None)),
+                "icc_profile": icc_name, "size_bytes": len(b)}
+
+    sig = {"iso_21496": b"urn:iso:std:iso:ts:21496" in data, "xmp_hdrgm": b"hdr-gain-map" in data,
+           "mpf": b"MPF\x00" in data, "exif": b"Exif\x00\x00" in data, "icc": b"ICC_PROFILE" in data}
+    out["signalling"] = sig
+    if not is_uhdr:
+        out["base"] = describe_jpeg(data)
+        return out
+    base, gm, meta = ic.ultrahdr_decode_jpeg(data)
+    out["base"] = describe_jpeg(base)
+    out["gainmap"] = describe_jpeg(gm)
+    cb_max = [float(v) for v in meta["max_content_boost"]]
+    cb_min = [float(v) for v in meta["min_content_boost"]]
+    out["metadata"] = {
+        "max_content_boost": cb_max, "min_content_boost": cb_min,
+        "gamma": [float(v) for v in meta["gamma"]],
+        "offset_sdr": [float(v) for v in meta["offset_sdr"]], "offset_hdr": [float(v) for v in meta["offset_hdr"]],
+        "hdr_capacity_min": float(meta["hdr_capacity_min"]), "hdr_capacity_max": float(meta["hdr_capacity_max"]),
+        "multichannel": len(set(round(v, 4) for v in cb_max)) > 1 or len(set(round(v, 4) for v in cb_min)) > 1,
+        "use_base_colour_gamut": bool(meta.get("use_base_cg", False)),
+        "peak_nits_declared": max(cb_max) * SDR_WHITE_NITS,
+        "capacity_matches_boost": abs(float(meta["hdr_capacity_max"]) - max(cb_max)) <= 0.05 * max(cb_max),
+    }
+    hdr = ic.ultrahdr_decode(data, dtype=np.float16)[..., :3].astype(np.float32) * SDR_WHITE_NITS
+    lum = hdr @ jxl2uhdr.LUMA_709
+    out["hdr"] = {"peak_nits": float(hdr.max()), "mean_nits": float(hdr.mean()),
+                  "above_sdr_percent": float((lum > SDR_WHITE_NITS).mean() * 100.0),
+                  "above_1000_percent": float((lum > 1000.0).mean() * 100.0)}
+    return out
 
 
 def load_settings():
@@ -807,6 +883,22 @@ class Api:
             subprocess.Popen(["explorer", "/select,", os.path.normpath(path)])
             return True
         return False
+
+    def output_info(self, fid, which="full"):
+        """Everything the finished file actually contains, read back from its bytes: base image,
+        gain map, metadata signalling and the HDR a viewer reconstructs. For the info panel."""
+        app = self._app
+        f = app.files.get(fid)
+        outs = [o for o in (f or {}).get("outputs", []) if os.path.exists(o)]
+        if not outs:
+            return None
+        s = app.settings
+        want = (s["ig_dir"] if which == "ig" else s["full_dir"]).lower()
+        path = next((o for o in outs if os.path.basename(os.path.dirname(o)).lower() == want), outs[0])
+        try:
+            return inspect_ultrahdr(path)
+        except Exception as e:
+            return {"error": f"{type(e).__name__}: {e}", "path": path}
 
     def output_image(self, fid, which="ig"):
         """The finished Ultra HDR JPEG of a card as a data URL for the in-app viewer.

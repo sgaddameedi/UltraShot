@@ -13,6 +13,11 @@ All notable changes to UltraShot are documented here. The format follows
 - Optional "Limit HDR peak" (Settings → Fine-tuning, `--limit-nits` on the command line): a soft
   roll-off that caps highlights at your display's peak, for captures that carry brighter highlights
   than the display showed. Off by default; the only setting that alters the HDR layer.
+- File details in the result viewer: the finished JPEG is read back and reported as it is on disk,
+  with the base image's resolution, chroma subsampling, estimated quality and colour profile, the
+  gain map's resolution, channels and quality, the full gain-map metadata (content boost, capacity,
+  gamma, offsets), the HDR a viewer reconstructs, and which metadata signalling is present. A
+  "Copy report" button copies it as text for bug reports.
 - "Clear finished" removes completed cards from the list.
 - Settings and the log open as panes beside the file list, alongside the inspector, instead of
   covering the window.
