@@ -104,6 +104,8 @@
     <div class="info" id="inspInfo"></div>
     <div class="insp-actions">
       <button class="primary" id="inspConvert">Convert this</button>
+      <button class="ghost" id="inspView">View result</button>
+      <button class="ghost" id="inspOpen">Open in viewer</button>
       <button class="ghost" id="inspReveal">Show in folder</button>
       <button class="ghost danger" id="inspRemove">Remove</button>
     </div>
@@ -125,6 +127,21 @@
   <pre id="logbody"></pre>
 </div>
 
+<div id="lightbox" class="lightbox hidden" role="dialog" aria-label="Converted image viewer">
+  <div class="lb-top">
+    <div class="lb-title"><span id="lbName">—</span><span class="lb-meta" id="lbMeta"></span></div>
+    <div class="lb-actions">
+      <div class="seg mini lb-seg" id="lbWhich"><button data-v="ig">Instagram copy</button><button data-v="full">Full size</button></div>
+      <button class="ghost tiny" id="lbOpen">Open in viewer</button>
+      <button class="ghost tiny" id="lbReveal">Show in folder</button>
+      <button class="iconbtn small" id="lbClose" title="Close (Esc)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+  </div>
+  <button class="lb-nav lb-prev" id="lbPrev" title="Previous (←)">‹</button>
+  <div class="lb-stage"><img id="lbImg" alt=""><div class="lb-loading" id="lbLoading"><span class="spinner"></span></div></div>
+  <button class="lb-nav lb-next" id="lbNext" title="Next (→)">›</button>
+  <div class="lb-foot" id="lbFoot"></div>
+</div>
 <div id="dragover" class="dragover"><div class="dragbox"><div class="dz-icon big">+</div><div>Drop to add</div></div></div>
 <div id="popover" class="popover hidden"></div>
 <div id="toasts"></div>

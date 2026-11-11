@@ -792,6 +792,25 @@ class Api:
             return True
         return False
 
+    def output_image(self, fid, which="ig"):
+        """The finished Ultra HDR JPEG of a card as a data URL for the in-app viewer.
+        which: 'ig' (the Instagram copy, small and quick) or 'full' (the full-size file)."""
+        app = self._app
+        f = app.files.get(fid)
+        outs = [o for o in (f or {}).get("outputs", []) if os.path.exists(o)]
+        if not outs:
+            return None
+        s = app.settings
+        want = (s["ig_dir"] if which == "ig" else s["full_dir"]).lower()
+        pick = next((o for o in outs if os.path.basename(os.path.dirname(o)).lower() == want), outs[0])
+        with open(pick, "rb") as fh:
+            data = fh.read()
+        kind = "full" if os.path.basename(os.path.dirname(pick)).lower() == s["full_dir"].lower() else "ig"
+        return {"url": "data:image/jpeg;base64," + base64.b64encode(data).decode("ascii"),
+                "path": pick, "size": len(data), "which": kind,
+                "has_full": any(os.path.basename(os.path.dirname(o)).lower() == s["full_dir"].lower() for o in outs),
+                "has_ig": any(os.path.basename(os.path.dirname(o)).lower() == s["ig_dir"].lower() for o in outs)}
+
     def output_dir(self, fid=None):
         app = self._app
         f = app.files.get(fid) if fid else None

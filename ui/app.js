@@ -103,7 +103,7 @@ function cardFor(f) {
   c.dataset.id = f.id;
   c.innerHTML = cardInner(f);
   c.addEventListener("click", () => select(f.id));
-  c.addEventListener("dblclick", () => { if (f.outputs?.length) S.api.reveal(f.outputs[0]); });
+  c.addEventListener("dblclick", () => openResult(f.id));
   return c;
 }
 
@@ -209,7 +209,8 @@ function renderInspectorInfo(f) {
     kv("Above SDR white", `${st.above_sdr.toFixed(2)}%`) + kv("Above 1000 nits", `${st.above_1k.toFixed(2)}%`) +
     kv("Status", { queued: "Ready to convert", working: "Converting…", done: "Converted", skipped: "Outputs already exist", failed: esc(f.error || "failed") }[f.status] || f.status) +
     kv("Outputs", f.outputs?.length ? f.outputs.map((o) => esc(o.split(/[\\/]/).slice(-2).join("\\"))).join("<br>") : "—");
-  $("#inspReveal").disabled = !(f.outputs && f.outputs.length);
+  const hasOut = !!(f.outputs && f.outputs.length);
+  $("#inspReveal").disabled = !hasOut; $("#inspView").disabled = !hasOut; $("#inspOpen").disabled = !hasOut;
 }
 
 function requestPreview() {
@@ -389,6 +390,46 @@ function appendLog(t, msg) {
   pre.scrollTop = pre.scrollHeight;
 }
 
+/* ------------------------------------------------------------------ result viewer */
+const LB = { ids: [], i: 0, which: "ig", path: null, seq: 0 };
+
+function convertedIds() { return S.order.filter((id) => { const f = S.files.get(id); return f && f.outputs && f.outputs.length; }); }
+
+function openResult(id) {
+  const f = S.files.get(id);
+  if (!f?.outputs?.length) { toast("Not converted yet", "warn"); return; }
+  if (convertedIds().length === 1) S.api.open_path(f.outputs[0]);   // one result: the default viewer
+  else openLightbox(id);                                              // several: slide through in-app
+}
+
+function openLightbox(id) {
+  LB.ids = convertedIds();
+  if (!LB.ids.length) return;
+  LB.i = Math.max(0, LB.ids.indexOf(id));
+  $("#lightbox").classList.remove("hidden");
+  showLightbox();
+}
+function closeLightbox() { $("#lightbox").classList.add("hidden"); $("#lbImg").removeAttribute("src"); }
+function stepLightbox(d) { if (!LB.ids.length) return; LB.i = (LB.i + d + LB.ids.length) % LB.ids.length; showLightbox(); }
+
+async function showLightbox() {
+  const id = LB.ids[LB.i], f = S.files.get(id);
+  if (!f) { closeLightbox(); return; }
+  const seq = ++LB.seq;
+  $("#lbName").textContent = f.name;
+  $("#lbMeta").textContent = `${LB.i + 1} / ${LB.ids.length}`;
+  $("#lbLoading").style.display = "";
+  const r = await S.api.output_image(id, LB.which);
+  if (seq !== LB.seq) return;
+  $("#lbLoading").style.display = "none";
+  if (!r) { toast("Output file not found", "err"); return; }
+  LB.path = r.path; LB.which = r.which;
+  $("#lbImg").src = r.url;
+  $("#lbWhich").querySelectorAll("button").forEach((b) => { b.classList.toggle("on", b.dataset.v === r.which); b.disabled = (b.dataset.v === "full" && !r.has_full) || (b.dataset.v === "ig" && !r.has_ig); });
+  $("#lbFoot").textContent = `${r.path.split(/[\\/]/).slice(-2).join("\\")} · ${(r.size / 1e6).toFixed(1)} MB · gain-map JPEG, shown in HDR when this display is in HDR mode`;
+  $("#lbPrev").style.visibility = $("#lbNext").style.visibility = LB.ids.length > 1 ? "visible" : "hidden";
+}
+
 /* ------------------------------------------------------------------ actions */
 async function convertAll() { const ids = pendingIds(); if (!ids.length) return; S.batch = new Set(ids); await S.api.convert(ids); updateProgress(); updateConvertButton(); }
 async function convertOne(id) { S.batch = new Set([...(S.batch || []), id]); await S.api.convert([id]); updateProgress(); }
@@ -409,6 +450,15 @@ function bindUI() {
   $("#inspConvert").addEventListener("click", () => S.selected && convertOne(S.selected));
   $("#inspRemove").addEventListener("click", () => S.selected && S.api.remove(S.selected));
   $("#inspReveal").addEventListener("click", () => { const f = S.files.get(S.selected); if (f?.outputs?.length) S.api.reveal(f.outputs[0]); });
+  $("#inspView").addEventListener("click", () => S.selected && openLightbox(S.selected));
+  $("#inspOpen").addEventListener("click", () => { const f = S.files.get(S.selected); if (f?.outputs?.length) S.api.open_path(f.outputs[0]); });
+  $("#lbClose").addEventListener("click", closeLightbox);
+  $("#lbPrev").addEventListener("click", () => stepLightbox(-1));
+  $("#lbNext").addEventListener("click", () => stepLightbox(1));
+  $("#lbOpen").addEventListener("click", () => { if (LB.path) S.api.open_path(LB.path); });
+  $("#lbReveal").addEventListener("click", () => { if (LB.path) S.api.reveal(LB.path); });
+  $("#lbWhich").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { LB.which = b.dataset.v; showLightbox(); } });
+  $("#lightbox").addEventListener("click", (e) => { if (e.target.id === "lightbox" || e.target.classList.contains("lb-stage")) closeLightbox(); });
   $("#inspTarget").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; S.inspTarget = b.dataset.v; renderInspectorControls(); requestPreview(); });
   $("#inspCrop").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) saveSetting("ig_crop", b.dataset.v); });
   const live = (id, key, fmt, label) => {
@@ -445,7 +495,11 @@ function bindUI() {
   window.addEventListener("drop", (e) => { e.preventDefault(); depth = 0; $("#dragover").classList.remove("show"); });
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") { if (!$("#settings").classList.contains("hidden")) closeSettings(); else if (!$("#popover").classList.contains("hidden")) $("#popover").classList.add("hidden"); else closeInspector(); }
+    const lbOpen = !$("#lightbox").classList.contains("hidden");
+    if (lbOpen && e.key === "ArrowLeft") { stepLightbox(-1); return; }
+    if (lbOpen && e.key === "ArrowRight") { stepLightbox(1); return; }
+    if (e.key === "Escape") { if (lbOpen) closeLightbox(); else if (!$("#settings").classList.contains("hidden")) closeSettings(); else if (!$("#popover").classList.contains("hidden")) $("#popover").classList.add("hidden"); else closeInspector(); }
+    if (e.key === "Enter" && !e.ctrlKey && S.selected && document.activeElement.tagName !== "INPUT" && !lbOpen) openResult(S.selected);
     if (e.key === "Delete" && S.selected && document.activeElement.tagName !== "INPUT") S.api.remove(S.selected);
     if (e.ctrlKey && e.key.toLowerCase() === "o") { e.preventDefault(); S.api.pick_files(); }
     if (e.ctrlKey && e.key === "Enter") convertAll();
