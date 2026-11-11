@@ -335,6 +335,13 @@ class App:
             self.files = OrderedDict(keep)
         self.emit("cleared", list(keep.keys()))
 
+    def clear_done(self):
+        """Drop finished cards (converted or skipped), keep everything still pending."""
+        with self.lock:
+            keep = {fid: f for fid, f in self.files.items() if f["status"] not in ("done", "skipped")}
+            self.files = OrderedDict(keep)
+        self.emit("cleared", list(keep.keys()))
+
     def convert(self, ids=None):
         with self.lock:
             targets = [self.files[i] for i in (ids or list(self.files.keys())) if i in self.files]
@@ -754,6 +761,9 @@ class Api:
 
     def clear(self):
         self._app.clear()
+
+    def clear_done(self):
+        self._app.clear_done()
 
     def convert(self, ids=None):
         return self._app.convert(ids)

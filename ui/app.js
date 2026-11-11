@@ -56,6 +56,7 @@ window.app = {
         had ? updateCard(p) : renderGrid();
         if (S.selected === p.id) renderInspectorInfo(p);
         updateProgress();
+        updateConvertButton();
         break;
       }
       case "removed": S.files.delete(p); S.order = S.order.filter((i) => i !== p); if (S.selected === p) closeInspector(); renderGrid(); updateProgress(); break;
@@ -79,8 +80,22 @@ function renderGrid() {
   empty.classList.toggle("hidden", has);
   grid.innerHTML = "";
   for (const id of S.order) grid.appendChild(cardFor(S.files.get(id)));
-  $("#btnConvert").disabled = !has;
-  $("#btnConvert").textContent = has ? `Convert ${S.order.length === 1 ? "" : S.order.length + " files"}`.trim() : "Convert";
+  updateConvertButton();
+}
+
+function pendingIds() {
+  const redo = !!S.settings.overwrite;
+  return S.order.filter((id) => { const f = S.files.get(id); return f && (f.status === "queued" || f.status === "failed" || (redo && f.status !== "working")); });
+}
+
+function updateConvertButton() {
+  const b = $("#btnConvert"), pending = pendingIds().length, total = S.order.length;
+  const working = S.order.some((id) => S.files.get(id)?.status === "working");
+  b.disabled = pending === 0;
+  if (!total) b.textContent = "Convert";
+  else if (pending) b.textContent = pending === 1 ? "Convert 1 file" : `Convert ${pending} files`;
+  else b.textContent = working ? "Converting…" : "All converted";
+  $("#btnClearDone").classList.toggle("hidden", !S.order.some((id) => ["done", "skipped"].includes(S.files.get(id)?.status)));
 }
 
 function cardFor(f) {
@@ -375,13 +390,14 @@ function appendLog(t, msg) {
 }
 
 /* ------------------------------------------------------------------ actions */
-async function convertAll() { const ids = S.order.slice(); if (!ids.length) return; S.batch = new Set(ids); await S.api.convert(ids); updateProgress(); }
+async function convertAll() { const ids = pendingIds(); if (!ids.length) return; S.batch = new Set(ids); await S.api.convert(ids); updateProgress(); updateConvertButton(); }
 async function convertOne(id) { S.batch = new Set([...(S.batch || []), id]); await S.api.convert([id]); updateProgress(); }
 
 function bindUI() {
   $("#empty").addEventListener("click", () => S.api.pick_files());
   $("#btnAdd").addEventListener("click", () => S.api.pick_files());
   $("#btnClear").addEventListener("click", () => S.api.clear());
+  $("#btnClearDone").addEventListener("click", () => S.api.clear_done());
   $("#btnConvert").addEventListener("click", convertAll);
   $("#btnSettings").addEventListener("click", openSettings);
   $("#settingsBack").addEventListener("click", closeSettings);

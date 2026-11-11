@@ -99,6 +99,32 @@ of these controls affect the HDR layer, which is always written exactly as captu
   </tr>
 </table>
 
+## Gallery
+
+Every image below is a full 3840×2160 Ultra HDR JPEG exactly as UltraShot wrote it, served from this
+repository. On an HDR display, Chrome and Edge render them in HDR on this page; on an SDR display you
+see the base image, which is the point of the format. Click any of them to open the file on its own.
+
+<table>
+  <tr>
+    <td><a href="examples/gallery/phantom-blade-zero-lake-sunset.jpg"><img src="examples/gallery/phantom-blade-zero-lake-sunset.jpg" alt="Phantom Blade Zero, sunset over a lake, 4K Ultra HDR"></a></td>
+    <td><a href="examples/gallery/phantom-blade-zero-lantern-stairs.jpg"><img src="examples/gallery/phantom-blade-zero-lantern-stairs.jpg" alt="Phantom Blade Zero, lantern-lit stairs under a bright sky, 4K Ultra HDR"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Sunset over the lake. 18 % of the frame sits above SDR white; peak 2300 nits.</sub></td>
+    <td align="center"><sub>Lantern stairs. Peak 2800 nits, 8 % of the frame above 600 nits.</sub></td>
+  </tr>
+  <tr>
+    <td><a href="examples/gallery/phantom-blade-zero-mountain-village.jpg"><img src="examples/gallery/phantom-blade-zero-mountain-village.jpg" alt="Phantom Blade Zero, a mountain village, 4K Ultra HDR"></a></td>
+    <td><a href="examples/gallery/phantom-blade-zero-golden-field.jpg"><img src="examples/gallery/phantom-blade-zero-golden-field.jpg" alt="Phantom Blade Zero, a golden field at dusk, 4K Ultra HDR"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Mountain village. Peak 3100 nits.</sub></td>
+    <td align="center"><sub>Golden field. 21 % of the frame above SDR white.</sub></td>
+  </tr>
+</table>
+
+More are in [examples/gallery](examples/gallery), and the [project site](https://sgaddameedi.github.io/UltraShot/) shows all of them.
 ## Getting started
 
 ### Installing
