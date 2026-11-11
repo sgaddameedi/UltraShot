@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+PackageIdentifier: sgaddameedi.UltraShot
+PackageVersion: 1.1.0
+MinimumOSVersion: 10.0.17763.0
+InstallerType: zip
+NestedInstallerType: portable
+NestedInstallerFiles:
+- RelativeFilePath: UltraShot.exe
+  PortableCommandAlias: ultrashot
+ReleaseDate: 2026-11-11
+Installers:
+- Architecture: x64
+  InstallerUrl: https://github.com/sgaddameedi/UltraShot/releases/download/v1.1.0/UltraShot-v1.1.0-windows-x64.zip
+  InstallerSha256: 005FE720E8F0A5AFAD1F0A694D0B49A17F60A18D23F54F5EE5619B8BB431CDC6
+ManifestType: installer
+ManifestVersion: 1.6.0
