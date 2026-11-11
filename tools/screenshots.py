@@ -108,6 +108,27 @@ def main():
         js("openSettings(); document.querySelector('.card').click()")
         time.sleep(3.0)
         shot("panes-side-by-side.png")
+        # Convert the first capture into a scratch folder, then show the viewer's compare and details.
+        import tempfile
+        scratch = tempfile.mkdtemp(prefix="ultrashot-shots-")
+        app.settings.update(save_mode="folder", save_dir=scratch, overwrite=True, ig_crop="none")
+        fid = next(iter(app.files))
+        app.convert([fid])
+        t = time.time()
+        while time.time() - t < 240 and app.files[fid]["status"] in ("queued", "working"):
+            time.sleep(0.5)
+        js(f"closeSettings(); closeInspector(); openLightbox('{fid}')")
+        time.sleep(3.0)
+        js("document.querySelector('#lbWhich button[data-v=full]').click()")
+        time.sleep(3.0)
+        js("document.querySelector('#lbCompareBtn').click(); LB.cmpMode='source'; loadCompare()")
+        time.sleep(16.0)
+        js("setWipe(55)")
+        time.sleep(0.5)
+        shot("compare.png")
+        js("setCompare(false); document.querySelector('#lbInfo').click()")
+        time.sleep(6.0)
+        shot("file-details.png")
         window.destroy()
 
     window.events.loaded += lambda: threading.Thread(target=flow, daemon=True).start()

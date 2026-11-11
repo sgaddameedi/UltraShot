@@ -420,7 +420,7 @@ function appendLog(t, msg) {
 }
 
 /* ------------------------------------------------------------------ result viewer */
-const LB = { ids: [], i: 0, which: "ig", path: null, seq: 0, info: false, report: "" };
+const LB = { ids: [], i: 0, which: "ig", path: null, seq: 0, info: false, report: "", compare: false, cmpMode: "sdrhdr", cmpSeq: 0 };
 
 function convertedIds() { return S.order.filter((id) => { const f = S.files.get(id); return f && f.outputs && f.outputs.length; }); }
 
@@ -438,7 +438,71 @@ function openLightbox(id) {
   $("#lightbox").classList.remove("hidden");
   showLightbox();
 }
-function closeLightbox() { $("#lightbox").classList.add("hidden"); $("#lbImg").removeAttribute("src"); }
+function closeLightbox() { $("#lightbox").classList.add("hidden"); $("#lbImg").removeAttribute("src"); setCompare(false); }
+
+/* ---- compare (wipe) view */
+function setCompare(on) {
+  LB.compare = on;
+  $("#lbCompare").classList.toggle("hidden", !on);
+  $("#lbStage").classList.toggle("hidden", on);
+  $("#lbCompareBtn").classList.toggle("on", on);
+  if (on) loadCompare(); else { $("#cmpImgA").removeAttribute("src"); $("#cmpImgB").removeAttribute("src"); }
+}
+function setWipe(pct) { const p = Math.max(0, Math.min(100, pct)); $("#cmpStage").style.setProperty("--wipe", p + "%"); }
+async function loadCompare() {
+  const id = LB.ids[LB.i]; if (!id) return;
+  const seq = ++LB.cmpSeq, stage = $("#cmpStage"), one = LB.cmpMode === "source";
+  $("#cmpMode").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === LB.cmpMode));
+  $("#cmpLoading").style.display = ""; $("#cmpMetrics").innerHTML = ""; $("#cmpHint").textContent = "";
+  stage.classList.toggle("one-to-one", one);
+  stage.style.setProperty("--px", "0px"); stage.style.setProperty("--py", "0px");
+  setWipe(50);
+  let r;
+  try { r = one ? await S.api.compare_source(id) : await S.api.compare_sdr_hdr(id, LB.which); } catch (e) { r = { error: String(e) }; }
+  if (seq !== LB.cmpSeq) return;
+  $("#cmpLoading").style.display = "none";
+  if (!r || r.error) { $("#cmpMetrics").innerHTML = `<span class="warn">${esc(r?.error || "nothing to compare")}</span>`; return; }
+  if (one) {
+    $("#cmpImgA").src = r.src_url; $("#cmpImgB").src = r.base_url;
+    $("#cmpLabelA").textContent = "Source, same tone map"; $("#cmpLabelB").textContent = "Output base image";
+    $("#cmpHint").textContent = "Actual pixels. Drag the image to pan, the handle to wipe.";
+    const m = r.metrics, sdrOk = m.sdr_psnr_db >= 40, hdrOk = m.hdr_p99_rel_err <= 5;
+    $("#cmpMetrics").innerHTML =
+      `<span>SDR base vs source: <b class="${sdrOk ? "ok" : "warn"}">${m.sdr_psnr_db >= 99 ? "identical" : m.sdr_psnr_db.toFixed(1) + " dB PSNR"}</b>, max ${m.sdr_max_diff}/255, ${m.sdr_pixels_over_2.toFixed(2)}% of pixels off by more than 2 levels</span>` +
+      `<span>HDR layer vs source: <b class="${hdrOk ? "ok" : "warn"}">${m.hdr_mean_rel_err.toFixed(2)}% mean luminance error</b>, ${m.hdr_p99_rel_err.toFixed(1)}% at the 99th percentile, ${m.hdr_pixels_over_5pct.toFixed(2)}% of pixels off by more than 5% (pixels above 5 nits)</span>` +
+      `<span>Peak: source <b>${Math.round(m.hdr_peak_source)}</b> nits, output <b>${Math.round(m.hdr_peak_output)}</b> nits</span>` +
+      `<span>Rendered with the current look (exposure ${m.look.exposure >= 0 ? "+" : ""}${m.look.exposure.toFixed(2)}, knee ${m.look.knee.toFixed(2)}${m.look.limit_nits ? ", limit " + m.look.limit_nits + " nits" : ""})</span>`;
+    // centre the 1:1 view on the middle of the image once it has loaded
+    $("#cmpImgA").onload = () => { const img = $("#cmpImgA"); const dx = Math.min(0, (stage.clientWidth - img.naturalWidth) / 2), dy = Math.min(0, (stage.clientHeight - img.naturalHeight) / 2); stage.style.setProperty("--px", dx + "px"); stage.style.setProperty("--py", dy + "px"); };
+  } else {
+    $("#cmpImgA").src = r.base_url; $("#cmpImgB").src = r.full_url;
+    $("#cmpLabelA").textContent = "SDR base · what SDR screens and thumbnails show"; $("#cmpLabelB").textContent = "Ultra HDR · what HDR phones and Chrome show";
+    $("#cmpHint").textContent = "On an HDR display the right side is brighter; on an SDR display both halves look the same, which is the point.";
+    $("#cmpMetrics").innerHTML = `<span>${r.w}×${r.h} · ${LB.which === "full" ? "full-size file" : "Instagram copy"} · drag the handle to wipe</span>`;
+  }
+}
+function bindWipe() {
+  const stage = $("#cmpStage"); let drag = null;
+  stage.addEventListener("pointerdown", (e) => {
+    const rect = stage.getBoundingClientRect();
+    const onHandle = e.target.closest("#cmpHandle") || Math.abs(e.clientX - (rect.left + rect.width * parseFloat(getComputedStyle(stage).getPropertyValue("--wipe")) / 100)) < 14;
+    drag = { mode: onHandle ? "wipe" : (stage.classList.contains("one-to-one") ? "pan" : "wipe"), x: e.clientX, y: e.clientY,
+             px: parseFloat(stage.style.getPropertyValue("--px")) || 0, py: parseFloat(stage.style.getPropertyValue("--py")) || 0 };
+    stage.setPointerCapture(e.pointerId);
+    if (drag.mode === "wipe") setWipe((e.clientX - rect.left) / rect.width * 100);
+  });
+  stage.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const rect = stage.getBoundingClientRect();
+    if (drag.mode === "wipe") { setWipe((e.clientX - rect.left) / rect.width * 100); return; }
+    const img = $("#cmpImgA"); if (!img.naturalWidth) return;
+    const nx = Math.min(0, Math.max(rect.width - img.naturalWidth, drag.px + e.clientX - drag.x));
+    const ny = Math.min(0, Math.max(rect.height - img.naturalHeight, drag.py + e.clientY - drag.y));
+    stage.style.setProperty("--px", nx + "px"); stage.style.setProperty("--py", ny + "px");
+  });
+  const end = () => { drag = null; };
+  stage.addEventListener("pointerup", end); stage.addEventListener("pointercancel", end);
+}
 function stepLightbox(d) { if (!LB.ids.length) return; LB.i = (LB.i + d + LB.ids.length) % LB.ids.length; showLightbox(); }
 
 async function showLightbox() {
@@ -458,6 +522,7 @@ async function showLightbox() {
   $("#lbFoot").textContent = `${r.path.split(/[\\/]/).slice(-2).join("\\")} · ${(r.size / 1e6).toFixed(1)} MB · gain-map JPEG, shown in HDR when this display is in HDR mode`;
   $("#lbPrev").style.visibility = $("#lbNext").style.visibility = LB.ids.length > 1 ? "visible" : "hidden";
   if (LB.info) loadInfo();
+  if (LB.compare) loadCompare();
 }
 
 const fmtBytes = (b) => b >= 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.round(b / 1e3) + " KB";
@@ -549,6 +614,9 @@ function bindUI() {
   $("#lbReveal").addEventListener("click", () => { if (LB.path) S.api.reveal(LB.path); });
   $("#lbWhich").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { LB.which = b.dataset.v; showLightbox(); } });
   $("#lbInfo").addEventListener("click", () => { LB.info = !LB.info; $("#lbInfoPanel").classList.toggle("hidden", !LB.info); if (LB.info) loadInfo(); });
+  $("#lbCompareBtn").addEventListener("click", () => setCompare(!LB.compare));
+  $("#cmpMode").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { LB.cmpMode = b.dataset.v; loadCompare(); } });
+  bindWipe();
   $("#lbInfoClose").addEventListener("click", () => { LB.info = false; $("#lbInfoPanel").classList.add("hidden"); });
   $("#lbCopyReport").addEventListener("click", async () => { try { await navigator.clipboard.writeText(LB.report || ""); toast("Report copied", "ok"); } catch (e) { toast("Could not copy", "err"); } });
   $("#lightbox").addEventListener("click", (e) => { if (e.target.id === "lightbox" || e.target.classList.contains("lb-stage")) closeLightbox(); });

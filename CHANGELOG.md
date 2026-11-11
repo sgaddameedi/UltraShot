@@ -18,6 +18,14 @@ All notable changes to UltraShot are documented here. The format follows
   gain map's resolution, channels and quality, the full gain-map metadata (content boost, capacity,
   gamma, offsets), the HDR a viewer reconstructs, and which metadata signalling is present. A
   "Copy report" button copies it as text for bug reports.
+- Compare in the result viewer: a draggable wipe between the SDR base image and the Ultra HDR
+  rendering, and a 1:1 wipe between the original capture and the finished file, rendered with the
+  same tone map so the two differ only by what the encoder changed. The source comparison reports
+  the PSNR of the base image against the source, the share of pixels off by more than two levels,
+  and the mean, 99th-percentile and over-five-percent luminance error of the reconstructed HDR layer.
+- The layout now adapts to the window: panes shrink to the space available and the oldest one closes
+  when the window cannot hold them all, the bottom bar wraps on narrow windows, and the viewer's
+  controls, compare stage and details panel fit windows down to 960 by 640.
 - "Clear finished" removes completed cards from the list.
 - Settings and the log open as panes beside the file list, alongside the inspector, instead of
   covering the window.

@@ -99,6 +99,14 @@ of these controls affect the HDR layer, which is always written exactly as captu
     <td align="center"><sub>The Instagram output previewed with a 4:5 crop and position controls</sub></td>
     <td align="center"><sub>Settings</sub></td>
   </tr>
+  <tr>
+    <td><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/docs/screenshots/compare.png"><img src="docs/screenshots/compare.png" alt="The compare view wiping between source and output"></a></td>
+    <td><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/docs/screenshots/file-details.png"><img src="docs/screenshots/file-details.png" alt="The file details panel"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Compare: the original capture against the finished file at 1:1, with error metrics</sub></td>
+    <td align="center"><sub>File details: what the finished JPEG actually contains, read back from disk</sub></td>
+  </tr>
 </table>
 
 ## Gallery
@@ -202,7 +210,13 @@ default viewer when it is the only one, or in the built-in viewer that steps thr
 capture and, on an HDR display, shows the gain-map JPEG in HDR. Its *Info* panel reads the finished
 file back and lists what it actually contains, from chroma subsampling and the embedded colour
 profile to the gain-map metadata and the peak brightness a phone will reconstruct, with a
-*Copy report* button for bug reports.
+*Copy report* button for bug reports. *Compare* opens a wipe you drag across the picture: between
+the SDR base and the Ultra HDR rendering, which only separates on an HDR display, or at actual
+pixels between the original capture and the finished file, rendered through the same tone map so
+that the only differences left are the ones the encoder introduced. That second mode also prints
+how close the file is to the source, as a PSNR for the base image and as luminance error for the
+reconstructed HDR layer, so you can see for yourself that the conversion is lossless in every way
+that matters.
 
 ### Adjusting the SDR base image
 

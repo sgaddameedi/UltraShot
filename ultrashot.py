@@ -908,6 +908,66 @@ class Api:
         except Exception as e:
             return {"error": f"{type(e).__name__}: {e}", "path": path}
 
+    def _pick_output(self, fid, which):
+        app = self._app
+        f = app.files.get(fid)
+        outs = [o for o in (f or {}).get("outputs", []) if os.path.exists(o)]
+        if not outs:
+            return f, None
+        want = (app.settings["ig_dir"] if which == "ig" else app.settings["full_dir"]).lower()
+        return f, next((o for o in outs if os.path.basename(os.path.dirname(o)).lower() == want), outs[0])
+
+    def compare_sdr_hdr(self, fid, which="ig"):
+        """The base JPEG alone (what SDR viewers show) and the complete Ultra HDR file, for the wipe."""
+        f, path = self._pick_output(fid, which)
+        if not path:
+            return None
+        data = open(path, "rb").read()
+        base, _, _ = ic.ultrahdr_decode_jpeg(data)
+        im = Image.open(io.BytesIO(base))
+        b64 = lambda b: "data:image/jpeg;base64," + base64.b64encode(b).decode("ascii")
+        return {"base_url": b64(base), "full_url": b64(data), "w": im.width, "h": im.height, "path": path}
+
+    def compare_source(self, fid):
+        """Source rendered through the same tone map next to the full-size output's base image, at
+        the same pixel geometry, plus numbers for how much the conversion changed."""
+        app = self._app
+        f, path = self._pick_output(fid, "full")
+        if not path:
+            return {"error": "no full-size output for this capture"}
+        if not os.path.exists(f["path"]):
+            return {"error": "the source capture has been moved or deleted"}
+        s = app.settings
+        nits, gamut = jxl2uhdr.load_hdr(f["path"], s["transfer"], log=lambda m: None)
+        data = open(path, "rb").read()
+        base, _, _ = ic.ultrahdr_decode_jpeg(data)
+        hdr = ic.ultrahdr_decode(data, dtype=np.float16)[..., :3].astype(np.float32) * SDR_WHITE_NITS
+        if hdr.shape[:2] != nits.shape[:2]:
+            return {"error": f"output is {hdr.shape[1]}x{hdr.shape[0]} but the source is {nits.shape[1]}x{nits.shape[0]}; "
+                             "compare the full-size output, not a cropped or resized one"}
+        if float(s["limit_nits"]) > 0:
+            nits = jxl2uhdr.limit_peak(nits, gamut, float(s["limit_nits"]), log=lambda m: None)
+        sdr_src = jxl2uhdr.make_sdr(nits, gamut, float(s["exposure"]), float(s["knee"]))[..., :3]
+        base_rgb = np.asarray(Image.open(io.BytesIO(base)).convert("RGB"), np.int16)
+        d = np.abs(base_rgb - sdr_src.astype(np.int16))
+        mse = float((d.astype(np.float64) ** 2).mean())
+        psnr = 99.0 if mse == 0 else float(10 * np.log10(255.0 ** 2 / mse))
+        src_lum = luminance(nits, gamut)
+        out_lum = luminance(hdr, gamut)
+        # relative error on pixels that are visible at all: below 5 nits a half-nit of gain-map
+        # quantisation would read as a huge percentage of nothing
+        rel = np.abs(out_lum - src_lum) / np.maximum(src_lum, 5.0)
+        metrics = {
+            "sdr_psnr_db": psnr, "sdr_max_diff": int(d.max()), "sdr_pixels_over_2": float((d.max(axis=2) > 2).mean() * 100.0),
+            "hdr_peak_source": float(src_lum.max()), "hdr_peak_output": float(out_lum.max()),
+            "hdr_mean_rel_err": float(rel.mean() * 100.0), "hdr_p99_rel_err": float(np.percentile(rel, 99) * 100.0),
+            "hdr_pixels_over_5pct": float((rel > 0.05).mean() * 100.0),
+            "look": {"exposure": float(s["exposure"]), "knee": float(s["knee"]), "limit_nits": float(s["limit_nits"])},
+        }
+        b64 = lambda b: "data:image/jpeg;base64," + base64.b64encode(b).decode("ascii")
+        return {"src_url": jpeg_data_url(sdr_src, quality=95), "base_url": b64(base),
+                "w": int(nits.shape[1]), "h": int(nits.shape[0]), "metrics": metrics}
+
     def output_image(self, fid, which="ig"):
         """The finished Ultra HDR JPEG of a card as a data URL for the in-app viewer.
         which: 'ig' (the Instagram copy, small and quick) or 'full' (the full-size file)."""

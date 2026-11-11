@@ -138,6 +138,7 @@
     <div class="lb-title"><span id="lbName">—</span><span class="lb-meta" id="lbMeta"></span></div>
     <div class="lb-actions">
       <div class="seg mini lb-seg" id="lbWhich"><button data-v="ig">Instagram copy</button><button data-v="full">Full size</button></div>
+      <button class="ghost tiny" id="lbCompareBtn" title="Wipe between SDR and HDR, or source and output">Compare</button>
       <button class="ghost tiny" id="lbInfo" title="Everything the file contains">Info</button>
       <button class="ghost tiny" id="lbOpen">Open in viewer</button>
       <button class="ghost tiny" id="lbReveal">Show in folder</button>
@@ -145,7 +146,22 @@
     </div>
   </div>
   <button class="lb-nav lb-prev" id="lbPrev" title="Previous (←)">‹</button>
-  <div class="lb-stage"><img id="lbImg" alt=""><div class="lb-loading" id="lbLoading"><span class="spinner"></span></div></div>
+  <div class="lb-stage" id="lbStage"><img id="lbImg" alt=""><div class="lb-loading" id="lbLoading"><span class="spinner"></span></div></div>
+  <div class="lb-compare hidden" id="lbCompare">
+    <div class="cmp-tools">
+      <div class="seg mini" id="cmpMode"><button data-v="sdrhdr" class="on">SDR base vs Ultra HDR</button><button data-v="source">Source vs output · 1:1</button></div>
+      <span class="cmp-hint" id="cmpHint"></span>
+    </div>
+    <div class="cmp-stage" id="cmpStage">
+      <div class="cmp-layer" id="cmpA"><img id="cmpImgA" alt="" draggable="false"></div>
+      <div class="cmp-layer cmp-top" id="cmpB"><img id="cmpImgB" alt="" draggable="false"></div>
+      <div class="cmp-handle" id="cmpHandle"><span></span></div>
+      <div class="cmp-label cmp-label-a" id="cmpLabelA"></div>
+      <div class="cmp-label cmp-label-b" id="cmpLabelB"></div>
+      <div class="lb-loading" id="cmpLoading"><span class="spinner"></span></div>
+    </div>
+    <div class="cmp-metrics" id="cmpMetrics"></div>
+  </div>
   <button class="lb-nav lb-next" id="lbNext" title="Next (→)">›</button>
   <div class="lb-foot" id="lbFoot"></div>
   <aside class="lb-infopanel hidden" id="lbInfoPanel">
