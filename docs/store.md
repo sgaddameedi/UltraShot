@@ -64,7 +64,18 @@ In the app's dashboard start a new submission and work through the sections. The
 real input are below; the rest can be left at their defaults.
 
 **Packages.** Upload `dist\UltraShot.msix`. Partner Center validates the manifest and reports any
-problem on the spot; the identity values must match what it issued.
+problem on the spot; the identity values must match what it issued. Two messages are expected.
+Under *Device family availability* leave only *Windows 10/11 desktop* ticked, since the package
+is x64 desktop only and every other family would need a package of its own. The warning that
+*runFullTrust* is a restricted capability is normal for a packaged desktop app: the *Submission
+options* section has a box for restricted-capability justification, and this text is enough:
+
+  > UltraShot is a packaged Win32 desktop application (Python runtime with a WebView2 window). Full
+  > trust is required to run the native image codecs, read the user's screenshot folder that the
+  > app watches, write converted files next to the originals, and place an icon in the system tray.
+  > The app makes no network connections and collects no data.
+
+Approval is granted as part of certification, not in advance.
 
 **Pricing and availability.** Free, all markets. If you later decide to charge, this is where the
 price goes; the source stays open either way.
@@ -88,7 +99,8 @@ A converter with no network access answers "no" to everything and receives an al
 - *Screenshots:* 1920×1080 captures of every screen are produced by
   `SHOT_W=1920 SHOT_H=1080 SHOT_OUT=packaging/msix/store-listing/screenshots python tools/screenshots.py`
   (on PowerShell set the three variables with `$env:` first). Upload `main`, `inspector`,
-  `instagram-crop`, `highlights-map`, `panes-side-by-side` and `settings`.
+  `instagram-crop`, `highlights-map`, `compare`, `file-details`, `panes-side-by-side` and
+  `settings`.
 - *Store logos:* `python packaging/msix/make_store_images.py` renders the 300×300 logo, the
   2400×1200 poster and a 1920×1080 banner into `packaging/msix/store-listing/`.
 - *Search terms:* HDR screenshot, Ultra HDR, gain map, Instagram HDR, ReShade, JXR, JXL.

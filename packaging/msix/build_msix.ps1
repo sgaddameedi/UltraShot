@@ -71,7 +71,8 @@ $manifest = Get-Content (Join-Path $here "AppxManifest.xml") -Raw
 $manifest = $manifest.Replace('Name="PLACEHOLDER.UltraShot"', "Name=`"$IdentityName`"")
 $manifest = $manifest.Replace('Publisher="CN=PLACEHOLDER"', "Publisher=`"$Publisher`"")
 $manifest = $manifest.Replace('<PublisherDisplayName>PLACEHOLDER</PublisherDisplayName>', "<PublisherDisplayName>$PublisherDisplayName</PublisherDisplayName>")
-$manifest = $manifest -replace 'Version="\d+\.\d+\.\d+\.\d+"', "Version=`"$Version`""
+# Only the Identity element's Version: MinVersion/MaxVersionTested also end in "Version".
+$manifest = $manifest -replace '(<Identity\b[^>]*?\s)Version="\d+\.\d+\.\d+\.\d+"', "`${1}Version=`"$Version`""
 [IO.File]::WriteAllText((Join-Path $stage "AppxManifest.xml"), $manifest, (New-Object Text.UTF8Encoding $false))
 
 # --- pack ------------------------------------------------------------------------------------
