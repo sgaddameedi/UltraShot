@@ -1,0 +1,749 @@
+[
+ {
+  "id": "phantom-blade-zero-lake-sunset",
+  "title": "Sunset over the lake",
+  "game": "Phantom Blade Zero",
+  "tool": "Windows Game Bar",
+  "file": "https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/gallery/phantom-blade-zero-lake-sunset.jpg",
+  "heat": "demo/phantom-blade-zero-lake-sunset-heat.jpg",
+  "lum": "demo/phantom-blade-zero-lake-sunset-lum.png",
+  "thumb": "demo/phantom-blade-zero-lake-sunset-thumb.jpg",
+  "width": 3840,
+  "height": 2160,
+  "size_bytes": 3621472,
+  "signalling": {
+   "iso_21496": true,
+   "xmp_hdrgm": true,
+   "mpf": true,
+   "exif": false,
+   "icc": true
+  },
+  "base": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with sRGB Transfer",
+   "size_bytes": 2226124
+  },
+  "gainmap": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with Linear Transfer",
+   "size_bytes": 1395348
+  },
+  "metadata": {
+   "max_content_boost": [
+    11.351561546325684,
+    10.482389450073242,
+    10.40839958190918
+   ],
+   "min_content_boost": [
+    0.8361228704452515,
+    0.3285417854785919,
+    4.957594501320273e-05
+   ],
+   "gamma": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "offset_sdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "offset_hdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "hdr_capacity_min": 1.0,
+   "hdr_capacity_max": 11.349753379821777,
+   "multichannel": true,
+   "use_base_colour_gamut": true,
+   "peak_nits_declared": 2304.3669939041138,
+   "capacity_matches_boost": true
+  },
+  "hdr": {
+   "peak_nits": 2304.367,
+   "mean_nits": 108.242,
+   "maxcll": 2149.343,
+   "maxfall": 113.683,
+   "peak_pq": 0.843,
+   "headroom_stops": 3.505,
+   "above_sdr_percent": 18.338,
+   "above_1000_percent": 0.086
+  }
+ },
+ {
+  "id": "phantom-blade-zero-sunset-figures",
+  "title": "Figures against the sunset",
+  "game": "Phantom Blade Zero",
+  "tool": "ReShade",
+  "file": "https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/gallery/phantom-blade-zero-sunset-figures.jpg",
+  "heat": "demo/phantom-blade-zero-sunset-figures-heat.jpg",
+  "lum": "demo/phantom-blade-zero-sunset-figures-lum.png",
+  "thumb": "demo/phantom-blade-zero-sunset-figures-thumb.jpg",
+  "width": 3840,
+  "height": 2160,
+  "size_bytes": 4467596,
+  "signalling": {
+   "iso_21496": true,
+   "xmp_hdrgm": true,
+   "mpf": true,
+   "exif": false,
+   "icc": true
+  },
+  "base": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with sRGB Transfer",
+   "size_bytes": 3008466
+  },
+  "gainmap": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with Linear Transfer",
+   "size_bytes": 1459130
+  },
+  "metadata": {
+   "max_content_boost": [
+    12.195313453674316,
+    10.728938102722168,
+    10.194838523864746
+   ],
+   "min_content_boost": [
+    0.5069527626037598,
+    0.16394776105880737,
+    4.957594501320273e-05
+   ],
+   "gamma": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "offset_sdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "offset_hdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "hdr_capacity_min": 1.0,
+   "hdr_capacity_max": 12.201970100402832,
+   "multichannel": true,
+   "use_base_colour_gamut": true,
+   "peak_nits_declared": 2475.6486310958862,
+   "capacity_matches_boost": true
+  },
+  "hdr": {
+   "peak_nits": 2475.648,
+   "mean_nits": 102.055,
+   "maxcll": 2202.853,
+   "maxfall": 104.773,
+   "peak_pq": 0.851,
+   "headroom_stops": 3.608,
+   "above_sdr_percent": 15.939,
+   "above_1000_percent": 0.063
+  }
+ },
+ {
+  "id": "phantom-blade-zero-lantern-stairs",
+  "title": "Lantern stairs",
+  "game": "Phantom Blade Zero",
+  "tool": "ReShade",
+  "file": "https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/gallery/phantom-blade-zero-lantern-stairs.jpg",
+  "heat": "demo/phantom-blade-zero-lantern-stairs-heat.jpg",
+  "lum": "demo/phantom-blade-zero-lantern-stairs-lum.png",
+  "thumb": "demo/phantom-blade-zero-lantern-stairs-thumb.jpg",
+  "width": 3840,
+  "height": 2160,
+  "size_bytes": 3543586,
+  "signalling": {
+   "iso_21496": true,
+   "xmp_hdrgm": true,
+   "mpf": true,
+   "exif": false,
+   "icc": true
+  },
+  "base": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with sRGB Transfer",
+   "size_bytes": 2247057
+  },
+  "gainmap": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with Linear Transfer",
+   "size_bytes": 1296529
+  },
+  "metadata": {
+   "max_content_boost": [
+    13.97951602935791,
+    13.94402027130127,
+    13.918193817138672
+   ],
+   "min_content_boost": [
+    0.5034076571464539,
+    4.957594501320273e-05,
+    4.957594501320273e-05
+   ],
+   "gamma": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "offset_sdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "offset_hdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "hdr_capacity_min": 1.0,
+   "hdr_capacity_max": 13.817732810974121,
+   "multichannel": true,
+   "use_base_colour_gamut": true,
+   "peak_nits_declared": 2837.8417539596558,
+   "capacity_matches_boost": true
+  },
+  "hdr": {
+   "peak_nits": 2837.242,
+   "mean_nits": 88.29,
+   "maxcll": 2799.111,
+   "maxfall": 90.404,
+   "peak_pq": 0.865,
+   "headroom_stops": 3.805,
+   "above_sdr_percent": 12.826,
+   "above_1000_percent": 0.003
+  }
+ },
+ {
+  "id": "phantom-blade-zero-mountain-village",
+  "title": "Mountain village",
+  "game": "Phantom Blade Zero",
+  "tool": "ReShade",
+  "file": "https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/gallery/phantom-blade-zero-mountain-village.jpg",
+  "heat": "demo/phantom-blade-zero-mountain-village-heat.jpg",
+  "lum": "demo/phantom-blade-zero-mountain-village-lum.png",
+  "thumb": "demo/phantom-blade-zero-mountain-village-thumb.jpg",
+  "width": 3840,
+  "height": 2160,
+  "size_bytes": 3628584,
+  "signalling": {
+   "iso_21496": true,
+   "xmp_hdrgm": true,
+   "mpf": true,
+   "exif": false,
+   "icc": true
+  },
+  "base": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with sRGB Transfer",
+   "size_bytes": 2377074
+  },
+  "gainmap": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with Linear Transfer",
+   "size_bytes": 1251510
+  },
+  "metadata": {
+   "max_content_boost": [
+    15.429686546325684,
+    15.206620216369629,
+    15.079370498657227
+   ],
+   "min_content_boost": [
+    0.6330012083053589,
+    0.5018320679664612,
+    0.2396417260169983
+   ],
+   "gamma": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "offset_sdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "offset_hdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "hdr_capacity_min": 1.0,
+   "hdr_capacity_max": 15.433496475219727,
+   "multichannel": true,
+   "use_base_colour_gamut": true,
+   "peak_nits_declared": 3132.2263689041138,
+   "capacity_matches_boost": true
+  },
+  "hdr": {
+   "peak_nits": 3132.227,
+   "mean_nits": 59.26,
+   "maxcll": 3019.48,
+   "maxfall": 55.696,
+   "peak_pq": 0.876,
+   "headroom_stops": 3.948,
+   "above_sdr_percent": 12.142,
+   "above_1000_percent": 0.054
+  }
+ },
+ {
+  "id": "phantom-blade-zero-village-dusk",
+  "title": "Village at dusk",
+  "game": "Phantom Blade Zero",
+  "tool": "ReShade",
+  "file": "https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/gallery/phantom-blade-zero-village-dusk.jpg",
+  "heat": "demo/phantom-blade-zero-village-dusk-heat.jpg",
+  "lum": "demo/phantom-blade-zero-village-dusk-lum.png",
+  "thumb": "demo/phantom-blade-zero-village-dusk-thumb.jpg",
+  "width": 3840,
+  "height": 2160,
+  "size_bytes": 4132608,
+  "signalling": {
+   "iso_21496": true,
+   "xmp_hdrgm": true,
+   "mpf": true,
+   "exif": false,
+   "icc": true
+  },
+  "base": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with sRGB Transfer",
+   "size_bytes": 2860710
+  },
+  "gainmap": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with Linear Transfer",
+   "size_bytes": 1271898
+  },
+  "metadata": {
+   "max_content_boost": [
+    11.875000953674316,
+    11.707189559936523,
+    11.731049537658691
+   ],
+   "min_content_boost": [
+    0.508922278881073,
+    0.5034076571464539,
+    0.4293439984321594
+   ],
+   "gamma": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "offset_sdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "offset_hdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "hdr_capacity_min": 1.0,
+   "hdr_capacity_max": 11.881772994995117,
+   "multichannel": true,
+   "use_base_colour_gamut": true,
+   "peak_nits_declared": 2410.6251935958862,
+   "capacity_matches_boost": true
+  },
+  "hdr": {
+   "peak_nits": 2410.625,
+   "mean_nits": 60.935,
+   "maxcll": 2345.162,
+   "maxfall": 56.981,
+   "peak_pq": 0.848,
+   "headroom_stops": 3.57,
+   "above_sdr_percent": 11.842,
+   "above_1000_percent": 0.004
+  }
+ },
+ {
+  "id": "phantom-blade-zero-lion-dance",
+  "title": "Lion dance",
+  "game": "Phantom Blade Zero",
+  "tool": "ReShade",
+  "file": "https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/gallery/phantom-blade-zero-lion-dance.jpg",
+  "heat": "demo/phantom-blade-zero-lion-dance-heat.jpg",
+  "lum": "demo/phantom-blade-zero-lion-dance-lum.png",
+  "thumb": "demo/phantom-blade-zero-lion-dance-thumb.jpg",
+  "width": 3840,
+  "height": 2160,
+  "size_bytes": 4841025,
+  "signalling": {
+   "iso_21496": true,
+   "xmp_hdrgm": true,
+   "mpf": true,
+   "exif": false,
+   "icc": true
+  },
+  "base": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with sRGB Transfer",
+   "size_bytes": 3746609
+  },
+  "gainmap": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with Linear Transfer",
+   "size_bytes": 1094416
+  },
+  "metadata": {
+   "max_content_boost": [
+    13.546875,
+    13.16263484954834,
+    12.76995849609375
+   ],
+   "min_content_boost": [
+    0.7527470588684082,
+    4.957594501320273e-05,
+    4.957594501320273e-05
+   ],
+   "gamma": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "offset_sdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "offset_hdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "hdr_capacity_min": 1.0,
+   "hdr_capacity_max": 13.546798706054688,
+   "multichannel": true,
+   "use_base_colour_gamut": true,
+   "peak_nits_declared": 2750.015625,
+   "capacity_matches_boost": true
+  },
+  "hdr": {
+   "peak_nits": 2750.016,
+   "mean_nits": 18.671,
+   "maxcll": 2670.855,
+   "maxfall": 18.835,
+   "peak_pq": 0.862,
+   "headroom_stops": 3.76,
+   "above_sdr_percent": 2.097,
+   "above_1000_percent": 0.003
+  }
+ },
+ {
+  "id": "phantom-blade-zero-golden-field",
+  "title": "Golden field",
+  "game": "Phantom Blade Zero",
+  "tool": "ReShade",
+  "file": "https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/gallery/phantom-blade-zero-golden-field.jpg",
+  "heat": "demo/phantom-blade-zero-golden-field-heat.jpg",
+  "lum": "demo/phantom-blade-zero-golden-field-lum.png",
+  "thumb": "demo/phantom-blade-zero-golden-field-thumb.jpg",
+  "width": 3840,
+  "height": 2160,
+  "size_bytes": 4974139,
+  "signalling": {
+   "iso_21496": true,
+   "xmp_hdrgm": true,
+   "mpf": true,
+   "exif": false,
+   "icc": true
+  },
+  "base": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with sRGB Transfer",
+   "size_bytes": 3466924
+  },
+  "gainmap": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with Linear Transfer",
+   "size_bytes": 1507215
+  },
+  "metadata": {
+   "max_content_boost": [
+    11.148436546325684,
+    10.204024314880371,
+    9.878750801086426
+   ],
+   "min_content_boost": [
+    0.5778549909591675,
+    4.957594501320273e-05,
+    4.957594501320273e-05
+   ],
+   "gamma": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "offset_sdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "offset_hdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "hdr_capacity_min": 1.0,
+   "hdr_capacity_max": 11.152708053588867,
+   "multichannel": true,
+   "use_base_colour_gamut": true,
+   "peak_nits_declared": 2263.1326189041138,
+   "capacity_matches_boost": true
+  },
+  "hdr": {
+   "peak_nits": 2263.133,
+   "mean_nits": 114.806,
+   "maxcll": 2096.25,
+   "maxfall": 121.258,
+   "peak_pq": 0.841,
+   "headroom_stops": 3.479,
+   "above_sdr_percent": 21.043,
+   "above_1000_percent": 0.079
+  }
+ },
+ {
+  "id": "crimson-desert-red-sunset",
+  "title": "Red sunset over the mountains",
+  "game": "Crimson Desert",
+  "tool": "NVIDIA App",
+  "file": "https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/gallery/crimson-desert-red-sunset.jpg",
+  "heat": "demo/crimson-desert-red-sunset-heat.jpg",
+  "lum": "demo/crimson-desert-red-sunset-lum.png",
+  "thumb": "demo/crimson-desert-red-sunset-thumb.jpg",
+  "width": 3840,
+  "height": 2160,
+  "size_bytes": 3389828,
+  "signalling": {
+   "iso_21496": true,
+   "xmp_hdrgm": true,
+   "mpf": true,
+   "exif": false,
+   "icc": true
+  },
+  "base": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with sRGB Transfer",
+   "size_bytes": 2118567
+  },
+  "gainmap": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with Linear Transfer",
+   "size_bytes": 1271261
+  },
+  "metadata": {
+   "max_content_boost": [
+    11.070313453674316,
+    5.125,
+    4.924577713012695
+   ],
+   "min_content_boost": [
+    4.957594501320273e-05,
+    4.957594501320273e-05,
+    4.957594501320273e-05
+   ],
+   "gamma": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "offset_sdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "offset_hdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "hdr_capacity_min": 1.0,
+   "hdr_capacity_max": 11.073891639709473,
+   "multichannel": true,
+   "use_base_colour_gamut": true,
+   "peak_nits_declared": 2247.2736310958862,
+   "capacity_matches_boost": true
+  },
+  "hdr": {
+   "peak_nits": 2247.273,
+   "mean_nits": 17.294,
+   "maxcll": 1082.061,
+   "maxfall": 16.91,
+   "peak_pq": 0.84,
+   "headroom_stops": 3.469,
+   "above_sdr_percent": 0.014,
+   "above_1000_percent": 0.0
+  }
+ },
+ {
+  "id": "crimson-desert-storm-sky",
+  "title": "Storm sky over the tower",
+  "game": "Crimson Desert",
+  "tool": "NVIDIA App",
+  "file": "https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/gallery/crimson-desert-storm-sky.jpg",
+  "heat": "demo/crimson-desert-storm-sky-heat.jpg",
+  "lum": "demo/crimson-desert-storm-sky-lum.png",
+  "thumb": "demo/crimson-desert-storm-sky-thumb.jpg",
+  "width": 3840,
+  "height": 2160,
+  "size_bytes": 2128652,
+  "signalling": {
+   "iso_21496": true,
+   "xmp_hdrgm": true,
+   "mpf": true,
+   "exif": false,
+   "icc": true
+  },
+  "base": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with sRGB Transfer",
+   "size_bytes": 1096528
+  },
+  "gainmap": {
+   "width": 3840,
+   "height": 2160,
+   "mode": "RGB",
+   "chroma": "4:4:4",
+   "progressive": false,
+   "quality_estimate": 95,
+   "icc_profile": "sRGB Gamut with Linear Transfer",
+   "size_bytes": 1032124
+  },
+  "metadata": {
+   "max_content_boost": [
+    5.154139041900635,
+    5.1460418701171875,
+    5.1460418701171875
+   ],
+   "min_content_boost": [
+    4.957594501320273e-05,
+    4.957594501320273e-05,
+    4.957594501320273e-05
+   ],
+   "gamma": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "offset_sdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "offset_hdr": [
+    1.0000000116860974e-07,
+    1.0000000116860974e-07,
+    1.0000000116860974e-07
+   ],
+   "hdr_capacity_min": 1.0,
+   "hdr_capacity_max": 5.154139041900635,
+   "multichannel": true,
+   "use_base_colour_gamut": true,
+   "peak_nits_declared": 1046.2902255058289,
+   "capacity_matches_boost": true
+  },
+  "hdr": {
+   "peak_nits": 1045.926,
+   "mean_nits": 12.237,
+   "maxcll": 1029.809,
+   "maxfall": 13.302,
+   "peak_pq": 0.757,
+   "headroom_stops": 2.365,
+   "above_sdr_percent": 0.011,
+   "above_1000_percent": 0.005
+  }
+ }
+]
