@@ -32,11 +32,11 @@ def aurora(w, h):
 
 
 def banner(path, w, h, tagline=True):
-    """Icon on the left, name and tagline on the right. The block is about 1.3 times the reference
-    height wide, so on canvases squarer than 2:1 (16:9 hero art) everything is sized from the width
-    instead of the height and nothing runs off the right edge."""
+    """Icon on the left, name and tagline on the right. The block is about 1.9 times the reference
+    height wide plus the left margin, so on canvases squarer than 2.3:1 (16:9 hero art, the 2:1
+    social preview) everything is sized from the width instead of the height and nothing runs off."""
     img = aurora(w, h).convert("RGBA")
-    s = min(h, w / 2.0)                       # the height of an equivalent 2:1 canvas
+    s = min(h, w / 2.3)                       # the height of an equivalent 2.3:1 canvas
     icon = make_icon.draw(int(s * 0.42))
     ix, iy = int(w * 0.09), (h - icon.height) // 2 - (int(s * 0.03) if tagline else 0)
     img.alpha_composite(icon, (ix, iy))
