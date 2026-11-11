@@ -1,0 +1,27 @@
+# build output
+dist/
+build/
+*.spec
+build_log.txt
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# editors / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# local captures and outputs (never commit screenshots from the watch folder)
+*.jxl
+*.jxr
+!examples/*.jxl
+!examples/*.jxr
+4K HDR/
+Insta/

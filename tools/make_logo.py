@@ -1,0 +1,59 @@
+"""Renders docs/banner.png (README hero, 1600x500) and docs/social-preview.png (1280x640) from the
+app icon and the Segoe UI font. docs/logo.svg is hand-written and is the canonical logo."""
+import os
+import sys
+
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+import make_icon  # noqa: E402
+
+FONT_BOLD = r"C:\Windows\Fonts\segoeuib.ttf"
+FONT_REG = r"C:\Windows\Fonts\segoeui.ttf"
+
+
+def font(path, size):
+    try:
+        return ImageFont.truetype(path, size)
+    except OSError:
+        return ImageFont.load_default()
+
+
+def aurora(w, h):
+    bg = Image.new("RGB", (w, h), (14, 16, 20))
+    glow = Image.new("RGB", (w, h), (14, 16, 20))
+    d = ImageDraw.Draw(glow)
+    d.ellipse((-w * 0.1, -h * 0.4, w * 0.45, h * 0.9), fill=(40, 60, 120))
+    d.ellipse((w * 0.55, -h * 0.5, w * 1.1, h * 0.7), fill=(80, 40, 120))
+    d.ellipse((w * 0.3, h * 0.6, w * 0.8, h * 1.5), fill=(20, 70, 60))
+    glow = glow.filter(ImageFilter.GaussianBlur(w * 0.09))
+    return Image.blend(bg, glow, 0.75)
+
+
+def banner(path, w, h, tagline=True):
+    img = aurora(w, h).convert("RGBA")
+    icon = make_icon.draw(int(h * 0.42))
+    ix, iy = int(w * 0.09), (h - icon.height) // 2 - (int(h * 0.03) if tagline else 0)
+    img.alpha_composite(icon, (ix, iy))
+    d = ImageDraw.Draw(img)
+    tx = ix + icon.width + int(h * 0.09)
+    f1 = font(FONT_BOLD, int(h * 0.26))
+    d.text((tx, iy - int(h * 0.02)), "UltraShot", font=f1, fill=(235, 238, 245))
+    if tagline:
+        f2 = font(FONT_REG, int(h * 0.075))
+        d.text((tx + 4, iy + int(h * 0.30)), "HDR screenshots, shared in HDR.", font=f2, fill=(160, 170, 195))
+        f3 = font(FONT_REG, int(h * 0.055))
+        d.text((tx + 4, iy + int(h * 0.41)), "ReShade .jxl  ·  NVIDIA / Game Bar .jxr   →   Ultra HDR JPEG",
+               font=f3, fill=(120, 130, 155))
+    img.convert("RGB").save(path, optimize=True)
+    print("wrote", path)
+
+
+if __name__ == "__main__":
+    docs = os.path.join(ROOT, "docs")
+    os.makedirs(docs, exist_ok=True)
+    banner(os.path.join(docs, "banner.png"), 1600, 500)
+    banner(os.path.join(docs, "social-preview.png"), 1280, 640)
+    make_icon.draw(512).save(os.path.join(docs, "logo.png"))
+    print("wrote", os.path.join(docs, "logo.png"))

@@ -1,0 +1,27 @@
+name: Release
+
+# Builds UltraShot.exe and attaches it to the GitHub release when a v* tag is pushed.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -q
+      - run: cmd /c build_exe.bat -q
+      - name: Zip
+        run: Compress-Archive -Path dist\UltraShot\* -DestinationPath UltraShot-${{ github.ref_name }}-windows-x64.zip
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: UltraShot-${{ github.ref_name }}-windows-x64.zip
+          generate_release_notes: true
