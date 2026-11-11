@@ -455,6 +455,7 @@ async function loadCompare() {
   $("#cmpMode").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === LB.cmpMode));
   $("#cmpLoading").style.display = ""; $("#cmpMetrics").innerHTML = ""; $("#cmpHint").textContent = "";
   stage.classList.toggle("one-to-one", one);
+  stage.style.maxWidth = ""; stage.style.maxHeight = "";
   stage.style.setProperty("--px", "0px"); stage.style.setProperty("--py", "0px");
   setWipe(50);
   let r;
@@ -472,9 +473,16 @@ async function loadCompare() {
       `<span>HDR layer vs source: <b class="${hdrOk ? "ok" : "warn"}">${m.hdr_mean_rel_err.toFixed(2)}% mean luminance error</b>, ${m.hdr_p99_rel_err.toFixed(1)}% at the 99th percentile, ${m.hdr_pixels_over_5pct.toFixed(2)}% of pixels off by more than 5% (pixels above 5 nits)</span>` +
       `<span>Peak: source <b>${Math.round(m.hdr_peak_source)}</b> nits, output <b>${Math.round(m.hdr_peak_output)}</b> nits</span>` +
       `<span>Rendered with the current look (exposure ${m.look.exposure >= 0 ? "+" : ""}${m.look.exposure.toFixed(2)}, knee ${m.look.knee.toFixed(2)}${m.look.limit_nits ? ", limit " + m.look.limit_nits + " nits" : ""})</span>`;
-    // centre the 1:1 view on the middle of the image once it has loaded
-    $("#cmpImgA").onload = () => { const img = $("#cmpImgA"); const dx = Math.min(0, (stage.clientWidth - img.naturalWidth) / 2), dy = Math.min(0, (stage.clientHeight - img.naturalHeight) / 2); stage.style.setProperty("--px", dx + "px"); stage.style.setProperty("--py", dy + "px"); };
+    // At 1:1 the stage never exceeds the image, so a small capture sits centred with the wipe
+    // running across the picture, and a large one starts centred on its middle.
+    $("#cmpImgA").onload = () => {
+      const img = $("#cmpImgA");
+      stage.style.maxWidth = img.naturalWidth + "px"; stage.style.maxHeight = img.naturalHeight + "px";
+      const dx = Math.min(0, (stage.clientWidth - img.naturalWidth) / 2), dy = Math.min(0, (stage.clientHeight - img.naturalHeight) / 2);
+      stage.style.setProperty("--px", dx + "px"); stage.style.setProperty("--py", dy + "px");
+    };
   } else {
+    stage.style.maxWidth = ""; stage.style.maxHeight = "";
     $("#cmpImgA").src = r.base_url; $("#cmpImgB").src = r.full_url;
     $("#cmpLabelA").textContent = "SDR base · what SDR screens and thumbnails show"; $("#cmpLabelB").textContent = "Ultra HDR · what HDR phones and Chrome show";
     $("#cmpHint").textContent = "On an HDR display the right side is brighter; on an SDR display both halves look the same, which is the point.";
