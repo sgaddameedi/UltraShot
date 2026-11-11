@@ -5,6 +5,8 @@ is a shell around it: it decides which files to convert and with which settings,
 the work. This document follows a capture through that module from the file on disk to the finished
 Ultra HDR JPEG, and explains the decisions that were made along the way.
 
+![Architecture diagram](architecture.svg)
+
 ## Decoding to absolute luminance
 
 The first step converts whatever the capture tool wrote into a single, unambiguous representation:

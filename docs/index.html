@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UltraShot – Convert HDR game screenshots to Ultra HDR JPEG for Instagram, phones and browsers</title>
+<meta name="description" content="UltraShot turns ReShade (.jxl) and NVIDIA / Game Bar (.jxr) HDR game screenshots into Ultra HDR gain-map JPEGs that stay HDR on Instagram, Threads, Google Photos, Chrome and Android, and look right everywhere else. Free, open source, Windows.">
+<link rel="canonical" href="https://sgaddameedi.github.io/UltraShot/">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="UltraShot – HDR screenshots, shared in HDR">
+<meta property="og:description" content="Convert ReShade .jxl and NVIDIA / Game Bar .jxr captures into Ultra HDR JPEGs that keep their HDR on Instagram, Threads, Google Photos and Chrome.">
+<meta property="og:image" content="https://sgaddameedi.github.io/UltraShot/social-preview.png">
+<meta property="og:url" content="https://sgaddameedi.github.io/UltraShot/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="UltraShot – HDR screenshots, shared in HDR">
+<meta name="twitter:description" content="Free Windows app that converts HDR game screenshots into Ultra HDR JPEGs for Instagram, phones and browsers.">
+<meta name="twitter:image" content="https://sgaddameedi.github.io/UltraShot/social-preview.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "UltraShot",
+  "applicationCategory": "MultimediaApplication",
+  "operatingSystem": "Windows 10, Windows 11",
+  "description": "Converts HDR game screenshots (ReShade JPEG XL, NVIDIA App and Game Bar JPEG XR) into Ultra HDR gain-map JPEGs that display in HDR on Instagram, Threads, Google Photos, Chrome and Android.",
+  "url": "https://sgaddameedi.github.io/UltraShot/",
+  "downloadUrl": "https://github.com/sgaddameedi/UltraShot/releases/latest",
+  "softwareVersion": "1.1.0",
+  "license": "https://opensource.org/licenses/MIT",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Person", "name": "Sharath Gaddameedi", "url": "https://github.com/sgaddameedi" }
+}
+</script>
+<style>
+  :root { --bg:#09090b; --panel:#141418; --panel2:#1d1d24; --border:rgba(255,255,255,.08); --text:#f0eee8; --muted:#9a9790; --accent:#ffc14d; --accent2:#ff7a00; }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:"Segoe UI Variable Text","Segoe UI",Inter,system-ui,-apple-system,sans-serif; line-height:1.65; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .aurora { position:fixed; inset:-20%; z-index:0; pointer-events:none; filter:blur(70px); opacity:.6;
+    background:radial-gradient(40% 35% at 20% 15%, rgba(255,183,61,.18), transparent 70%), radial-gradient(35% 30% at 85% 20%, rgba(255,122,0,.14), transparent 70%), radial-gradient(45% 40% at 60% 90%, rgba(255,209,102,.06), transparent 70%); }
+  main { position:relative; z-index:1; max-width:1080px; margin:0 auto; padding:0 24px 80px; }
+  nav { display:flex; align-items:center; justify-content:space-between; padding:22px 0; }
+  .brand { display:flex; align-items:center; gap:12px; font-weight:700; font-size:18px; color:var(--text); }
+  .brand img { width:38px; height:38px; border-radius:11px; }
+  nav .links a { margin-left:22px; color:var(--muted); font-size:14px; }
+  nav .links a:hover { color:var(--text); text-decoration:none; }
+  .hero { display:grid; grid-template-columns:1.1fr 1fr; gap:40px; align-items:center; padding:48px 0 32px; }
+  h1 { font-size:46px; line-height:1.1; margin:0 0 18px; letter-spacing:-.5px; }
+  h1 span { background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .lead { font-size:18px; color:var(--muted); margin:0 0 28px; }
+  .cta { display:inline-flex; align-items:center; gap:10px; height:48px; padding:0 24px; border-radius:14px; font-weight:650; color:#1b1200; background:linear-gradient(135deg,var(--accent),var(--accent2)); box-shadow:0 10px 28px rgba(255,183,61,.28); }
+  .cta:hover { text-decoration:none; filter:brightness(1.07); }
+  .ghost { display:inline-flex; align-items:center; height:48px; padding:0 20px; border-radius:14px; border:1px solid var(--border); color:var(--text); margin-left:10px; background:var(--panel); }
+  .ghost:hover { text-decoration:none; background:var(--panel2); }
+  .fine { font-size:13px; color:var(--muted); margin-top:14px; }
+  .shot { border-radius:16px; border:1px solid var(--border); box-shadow:0 30px 80px rgba(0,0,0,.55); width:100%; display:block; }
+  section { padding:40px 0 10px; }
+  h2 { font-size:28px; margin:0 0 10px; letter-spacing:-.3px; }
+  .sub { color:var(--muted); font-size:16px; max-width:760px; margin:0 0 26px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:20px 22px; }
+  .card h3 { margin:0 0 8px; font-size:16px; }
+  .card p { margin:0; color:var(--muted); font-size:14.5px; }
+  .card .n { display:inline-grid; place-items:center; width:30px; height:30px; border-radius:9px; background:rgba(255,193,77,.14); color:var(--accent); font-weight:700; margin-bottom:12px; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .two figure { margin:0; }
+  figcaption { font-size:13px; color:var(--muted); margin-top:8px; }
+  .prose p { color:#d9d6ce; font-size:16.5px; max-width:820px; }
+  .demo { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:center; background:var(--panel); border:1px solid var(--border); border-radius:18px; padding:24px; }
+  .demo img { width:100%; border-radius:12px; display:block; }
+  .steps { counter-reset:s; display:grid; gap:12px; }
+  .steps div { display:flex; gap:14px; align-items:flex-start; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px 18px; }
+  .steps div::before { counter-increment:s; content:counter(s); flex:0 0 30px; height:30px; border-radius:9px; display:grid; place-items:center; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#1b1200; font-weight:700; }
+  .steps p { margin:0; color:var(--muted); font-size:14.5px; }
+  .steps b { color:var(--text); display:block; margin-bottom:2px; }
+  table { width:100%; border-collapse:collapse; font-size:14.5px; }
+  th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); }
+  th { color:var(--muted); font-weight:600; font-size:13px; }
+  footer { position:relative; z-index:1; border-top:1px solid var(--border); color:var(--muted); font-size:13.5px; padding:26px 24px; text-align:center; }
+  footer a { margin:0 8px; }
+  @media (max-width:860px) { .hero, .two, .demo { grid-template-columns:1fr; } h1 { font-size:36px; } nav .links a { margin-left:14px; } }
+</style>
+</head>
+<body>
+<div class="aurora" aria-hidden="true"></div>
+<main>
+  <nav>
+    <a class="brand" href="#"><img src="logo.svg" alt="">UltraShot</a>
+    <div class="links">
+      <a href="#how">How it works</a>
+      <a href="#instagram">Instagram</a>
+      <a href="https://github.com/sgaddameedi/UltraShot/blob/main/docs/capture.md">Capturing</a>
+      <a href="https://github.com/sgaddameedi/UltraShot">GitHub</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <h1>HDR screenshots, <span>shared in HDR.</span></h1>
+      <p class="lead">UltraShot converts HDR game screenshots from ReShade, the NVIDIA App and the Windows Game Bar into Ultra HDR JPEGs: ordinary JPEG files that Instagram, Threads, Google Photos, Chrome and Android phones display in full HDR, and that everything else displays as a correct SDR photograph.</p>
+      <a class="cta" href="https://github.com/sgaddameedi/UltraShot/releases/latest">Download for Windows</a>
+      <a class="ghost" href="https://github.com/sgaddameedi/UltraShot">View on GitHub</a>
+      <p class="fine">Free and open source under the MIT licence. Windows 10 and 11. No installer, no account, no upload to anyone's server.</p>
+    </div>
+    <img class="shot" src="screenshots/main.png" alt="The UltraShot window with four HDR captures ready to convert">
+  </header>
+
+  <section id="why">
+    <h2>Why this exists</h2>
+    <div class="prose">
+      <p>A game rendered in HDR produces screenshots that only a handful of programs can open, and the easy way out, converting them to a normal JPEG, throws the HDR away. Uploading a true HDR file instead does not help: social platforms refuse it, flatten it, or run it through their compression pipeline and return something dim and banded. The one format that survives all of that is the Ultra HDR JPEG, a standard JPEG carrying a small gain map that tells HDR displays how much brighter each pixel should be. Because it is structurally a JPEG, it passes through upload pipelines untouched, and because the HDR is stored as a difference from a conventional image, nothing ever looks wrong on a screen that cannot show it.</p>
+      <p>UltraShot is the missing step between the capture tools and that format. It never tone-maps or alters the HDR data, it writes the gain-map metadata so that phones apply the full range rather than a third of it, and it crops and resizes for Instagram before upload so that Instagram has no reason to re-encode the file.</p>
+    </div>
+  </section>
+
+  <section id="features">
+    <h2>What you get</h2>
+    <div class="grid">
+      <div class="card"><span class="n">1</span><h3>Drop or watch</h3><p>Drop files and folders on the window, or let the watch folder convert every new capture a few seconds after it is saved. Runs from the tray and starts with Windows.</p></div>
+      <div class="card"><span class="n">2</span><h3>The HDR layer stays intact</h3><p>Scene brightness goes in and comes out. Exposure and look controls shape only the SDR fallback that non-HDR screens and thumbnails show.</p></div>
+      <div class="card"><span class="n">3</span><h3>A gain map phones apply in full</h3><p>The encoder's default metadata leaves most of the HDR unapplied on a 1000-nit phone. UltraShot matches the declared capacity to the real range.</p></div>
+      <div class="card"><span class="n">4</span><h3>Instagram-ready output</h3><p>A 1440-pixel copy, cropped to 4:5, 1:1, 16:9, 9:16 or 1.91:1 with a positionable frame, so nothing has to be changed during upload.</p></div>
+      <div class="card"><span class="n">5</span><h3>Live preview and highlights map</h3><p>See the SDR base image as viewers will, adjust it with two sliders, and switch to a map of every pixel brighter than SDR white.</p></div>
+      <div class="card"><span class="n">6</span><h3>Full quality, both outputs</h3><p>Full-resolution multi-channel gain map, quality 100, 4:4:4 chroma, ISO 21496-1 and XMP signalling, capture date preserved.</p></div>
+    </div>
+  </section>
+
+  <section id="screens">
+    <h2>In use</h2>
+    <div class="two">
+      <figure><img class="shot" src="screenshots/inspector.png" alt="The inspector showing a live SDR preview with exposure and highlight-knee sliders"><figcaption>The inspector: a live preview of the SDR base image with exposure and highlight-knee controls.</figcaption></figure>
+      <figure><img class="shot" src="screenshots/highlights-map.png" alt="The highlights map view"><figcaption>The highlights map marks pixels above SDR white in orange and above 600 nits in pink.</figcaption></figure>
+      <figure><img class="shot" src="screenshots/instagram-crop.png" alt="The Instagram crop preview"><figcaption>The Instagram output previewed with a 4:5 crop and position controls.</figcaption></figure>
+      <figure><img class="shot" src="screenshots/settings.png" alt="The settings page"><figcaption>Settings: outputs, saving, the watch folder, background behaviour and fine-tuning.</figcaption></figure>
+    </div>
+  </section>
+
+  <section id="demo">
+    <h2>See it for yourself</h2>
+    <div class="demo">
+      <a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/sample-ultrahdr.jpg"><img src="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/sample-ultrahdr.jpg" alt="A sample Ultra HDR JPEG produced by UltraShot"></a>
+      <div class="prose">
+        <p>This image is an Ultra HDR JPEG made by UltraShot from a ReShade HDR10 capture. On an HDR display, Chrome and Edge render it in HDR right here on the page; the lanterns and the embers glow well above the white of this text. On an SDR screen you are seeing the base image, which is exactly what the format is for. <a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/examples/sample-ultrahdr.jpg">Open the file on its own</a> to view it at full size.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <p class="sub">The conversion engine is a single Python module built on Google's libultrahdr; the application is a thin shell around it. The full description is in the <a href="https://github.com/sgaddameedi/UltraShot/blob/main/docs/how-it-works.md">how-it-works guide</a>.</p>
+    <img class="shot" src="architecture.svg" alt="Architecture diagram: the conversion pipeline from capture to Ultra HDR JPEG, and the desktop application around it">
+    <div class="steps" style="margin-top:20px">
+      <div><p><b>Decode to absolute luminance</b>scRGB floats are multiplied by 80 nits; PQ and HLG code values go through the BT.2100 transfer curves. From here the HDR data is only cropped and resized, in linear light.</p></div>
+      <div><p><b>Render the SDR base</b>A hue-preserving tone map with an adjustable knee rolls highlights off toward white instead of clipping them. This is the image non-HDR viewers see, and it can be previewed live.</p></div>
+      <div><p><b>Encode the gain map</b>libultrahdr compares the linear HDR image with the base and stores the ratio per pixel and per channel, at full resolution and quality 100.</p></div>
+      <div><p><b>Match the declared capacity</b>The file is read back and re-encoded with the target peak set to the gain map's real maximum, so a phone with four times SDR headroom applies the whole gain map rather than a third of it.</p></div>
+      <div><p><b>Signal it to every reader</b>ISO 21496-1 metadata plus the older Adobe and Android XMP form, then a final decode to confirm the peak that HDR viewers will reconstruct.</p></div>
+    </div>
+  </section>
+
+  <section id="instagram">
+    <h2>Posting to Instagram and Threads</h2>
+    <p class="sub">Both platforms show gain-map JPEGs in HDR, and both remove the gain map the moment an upload is cropped, zoomed or filtered. Finish the image in UltraShot and change nothing on the way up.</p>
+    <div class="steps">
+      <div><p><b>Prepare</b>Keep the Instagram output enabled, pick the crop in Settings or the inspector, and check the SDR look. The HDR layer is unaffected by the look controls.</p></div>
+      <div><p><b>Upload from a desktop browser or an Android phone</b>iPhone uploads are transcoded through HEIC and lose the gain map.</p></div>
+      <div><p><b>Choose "Original" in the aspect-ratio menu</b>Do not drag or pinch the crop frame and skip the filter and adjustment screens, then post.</p></div>
+    </div>
+    <p class="fine">The <a href="https://github.com/sgaddameedi/UltraShot/blob/main/docs/instagram.md">Instagram guide</a> covers verification and how other services handle gain maps.</p>
+  </section>
+
+  <section id="sources">
+    <h2>Supported captures</h2>
+    <table>
+      <thead><tr><th>Capture tool</th><th>File</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td>ReShade 6.x (JPEG XL screenshot format)</td><td>.jxl</td><td>Float16 scRGB for scRGB games; 16-bit PQ or HLG for HDR10 games</td></tr>
+        <tr><td>NVIDIA App, GeForce Experience (Alt+F1)</td><td>.jxr</td><td>Float scRGB, one subfolder per game</td></tr>
+        <tr><td>Windows Game Bar (Win+Alt+PrtScn)</td><td>.jxr</td><td>Float scRGB, saved to Videos\Captures</td></tr>
+      </tbody>
+    </table>
+    <p class="fine">Enable HDR in Windows and in the game before capturing; the <a href="https://github.com/sgaddameedi/UltraShot/blob/main/docs/capture.md">capture guide</a> has the settings for each tool.</p>
+  </section>
+</main>
+<footer>
+  <a href="https://github.com/sgaddameedi/UltraShot">Source</a> ·
+  <a href="https://github.com/sgaddameedi/UltraShot/releases/latest">Releases</a> ·
+  <a href="https://github.com/sgaddameedi/UltraShot/blob/main/CONTRIBUTING.md">Contributing</a> ·
+  <a href="https://github.com/sgaddameedi/UltraShot/issues">Issues</a>
+  <div style="margin-top:8px">UltraShot is released under the MIT licence. Built on libultrahdr, imagecodecs, pywebview and pystray.</div>
+</footer>
+</body>
+</html>

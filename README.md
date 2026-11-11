@@ -207,6 +207,8 @@ Float input is interpreted as scRGB and 16-bit input as PQ. Games that output HL
 
 ## How the gain-map conversion works
 
+<p align="center"><img src="docs/architecture.svg" width="100%" alt="Architecture: the conversion pipeline from capture to Ultra HDR JPEG, and the desktop application around it"></p>
+
 The conversion engine lives in a single module, `jxl2uhdr.py`, and the application is a shell around
 it. A detailed description is in [docs/how-it-works.md](docs/how-it-works.md); in outline, the process
 has five stages.
