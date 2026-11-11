@@ -54,7 +54,9 @@ if (-not (Test-Path $makeappx)) {
 if (-not $SkipBuild) {
   Write-Host "Building the app..."
   Push-Location $root
-  cmd /c "build_exe.bat -q"
+  # stderr is folded into stdout inside cmd: PyInstaller prints harmless warnings there, and with
+  # ErrorActionPreference = Stop PowerShell would otherwise treat the first one as a failure.
+  cmd /c "`"$root\build_exe.bat`" -q 2>&1"
   if ($LASTEXITCODE -ne 0) { Pop-Location; throw "build_exe.bat failed" }
   Pop-Location
 }
