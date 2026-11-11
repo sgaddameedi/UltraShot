@@ -278,6 +278,7 @@ const SECTIONS = [
     { key: "exposure", lbl: "SDR exposure", type: "range", min: -3, max: 3, step: 0.05, fmt: (v) => (v >= 0 ? "+" : "") + Number(v).toFixed(2) + " st", dep: (s) => !s.auto_sdr },
     { key: "knee", lbl: "Highlight knee", hint: "Where the roll-off starts (1.0 = 203 nits). Lower keeps more highlight detail, looks flatter", type: "range", min: 0.1, max: 1, step: 0.05, fmt: (v) => Number(v).toFixed(2), dep: (s) => !s.auto_sdr },
     { key: "quality", lbl: "JPEG quality", hint: "Base image and gain map", type: "number", min: 50, max: 100, step: 1 },
+    { key: "limit_nits", lbl: "Limit HDR peak", hint: "Soft-limits highlights to your display's peak (e.g. 1000) so phones show what you saw in game. 0 keeps the capture's full range. This is the only setting that alters the HDR layer", type: "number", min: 0, max: 10000, step: 50, suffix: "nits" },
     { key: "peak_nits", lbl: "Gain map target peak", hint: "0 = match the gain map's own maximum (recommended). Otherwise 250–10000", type: "number", min: 0, max: 10000, step: 50, suffix: "nits" },
     { key: "transfer", lbl: "Input transfer", hint: "auto: float = scRGB (JXR, scRGB JXL), 16-bit = PQ", type: "seg", opts: [["auto", "Auto"], ["scrgb", "scRGB"], ["pq", "PQ"], ["hlg", "HLG"]] },
   ]},

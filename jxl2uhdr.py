@@ -240,13 +240,36 @@ def load_hdr(path, transfer="auto", log=print):
     return nits, gamut
 
 
+def limit_peak(nits, gamut, limit, log=print):
+    """Opt-in soft limit of the HDR layer's luminance to `limit` nits.
+
+    Captures from scRGB games can carry highlights far above what the display showed (3000-nit
+    suns on a 1000-nit monitor), and an HDR phone will reproduce them in full. A rational shoulder
+    starting at 75 % of the limit compresses the brightest channel toward the limit, hue-preserving,
+    so the result matches what the game looked like on a display of that peak. Off by default:
+    this is the one place the HDR data is deliberately altered."""
+    # the brightest channel, not luminance: a saturated highlight (a red sun, a blue lantern) must be
+    # limited too, as a real display would clip it; all channels are scaled equally so hue is kept
+    y = nits.max(axis=2)
+    k = 0.75 * limit
+    over = np.maximum(y - k, 0.0)
+    y_out = np.where(y > k, k + (limit - k) * over / (over + (limit - k)), y)
+    gain = np.where(y > 1e-6, y_out / np.maximum(y, 1e-6), 1.0).astype(np.float32)
+    affected = float((y > k).mean() * 100.0)
+    log(f"HDR peak limited to {limit:.0f} nits (roll-off from {k:.0f}); {affected:.2f}% of pixels affected, "
+        f"source peak {nits.max():.0f} nits")
+    return nits * gain[..., None]
+
+
 def encode_uhdr(nits, gamut, output, *, crop="", crop_x=50.0, crop_y=50.0, max_width=0,
                 exposure=0.0, knee=0.6, auto_sdr=False, quality=100, peak_nits=0.0,
-                log=print):
+                limit_nits=0.0, log=print):
     """Crop/resize linear nits and write an Ultra HDR JPEG. Returns the bytes written."""
     if crop:
         nits = crop_aspect(nits, crop, crop_x, crop_y)
         log(f"cropped to {nits.shape[1]}x{nits.shape[0]} ({crop})")
+    if limit_nits and limit_nits > 0:
+        nits = limit_peak(nits, gamut, float(limit_nits), log)
     if max_width:
         nits = resize_linear(nits, max_width)
         log(f"resized to {nits.shape[1]}x{nits.shape[0]}")
@@ -332,6 +355,9 @@ def main():
     ap.add_argument("--peak-nits", type=float, default=0.0,
                     help="target display peak in nits for the gain map, 250-10000 "
                          "(0 = match the gain map's own maximum, recommended)")
+    ap.add_argument("--limit-nits", type=float, default=0.0,
+                    help="soft-limit the HDR layer to this peak in nits, e.g. your monitor's 1000, "
+                         "so phones match what the game showed (0 = keep the capture's full range)")
     args = ap.parse_args()
 
     try:
@@ -340,7 +366,8 @@ def main():
         sys.exit(str(e))
     encode_uhdr(nits, gamut, args.output, crop=args.crop, crop_x=args.crop_x, crop_y=args.crop_y,
                 max_width=args.max_width, exposure=args.exposure, knee=args.knee,
-                auto_sdr=args.auto_sdr, quality=args.quality, peak_nits=args.peak_nits)
+                auto_sdr=args.auto_sdr, quality=args.quality, peak_nits=args.peak_nits,
+                limit_nits=args.limit_nits)
 
 
 if __name__ == "__main__":

@@ -4,6 +4,22 @@ All notable changes to UltraShot are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- In-app result viewer: double-click a converted card to open it in the default viewer (single result)
+  or step through every converted capture in a viewer rendered by WebView2, which shows the gain-map
+  JPEG in HDR on an HDR display. Switch between the Instagram copy and the full-size file.
+- Optional "Limit HDR peak" (Settings → Fine-tuning, `--limit-nits` on the command line): a soft
+  roll-off that caps highlights at your display's peak, for captures that carry brighter highlights
+  than the display showed. Off by default; the only setting that alters the HDR layer.
+- "Clear finished" removes completed cards from the list.
+- Black-and-gold "Halo" identity, landing page on GitHub Pages, 4K HDR gallery.
+
+### Fixed
+- The Convert button counted every card, including ones the watch folder had already converted; it now
+  counts only files that still need converting and reads "All converted" when nothing is pending.
+
 ## [1.1.0] - 2026-11-11
 
 ### Added

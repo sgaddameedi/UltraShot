@@ -55,6 +55,7 @@ Delete the file to reset everything.
 | SDR exposure | 0 st | Brightness of the SDR base in stops. HDR layer unaffected |
 | Highlight knee | 0.6 | Where the SDR roll-off starts (1.0 = 203 nits). Lower keeps more highlight detail and looks flatter |
 | JPEG quality | 100 | Base image and gain map |
+| Limit HDR peak | 0 (off) | Soft-limits the HDR layer's highlights to this many nits, with a roll-off from 75 % of it. Set it to your monitor's peak (often 1000) when a capture carries brighter highlights than the display showed and phones render it hotter than you remember. The only setting that alters the HDR layer |
 | Gain map target peak | 0 (auto) | Auto matches the gain map's real maximum. 250–10000 to force a value |
 | Input transfer | Auto | Float = scRGB, 16-bit = PQ. Set HLG for HLG games |
 

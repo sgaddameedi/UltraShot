@@ -68,7 +68,7 @@ DEFAULTS = dict(
     save_mode="beside", save_dir="", keep_date=True, overwrite=False, suffix="",
     watch=True, watch_dir="", watch_subfolders=True, watch_existing=False, settle=3.0, interval=2.0,
     tray=True, startup=True, explorer_menu=False,
-    exposure=0.0, knee=0.6, auto_sdr=False, quality=100, peak_nits=0, transfer="auto",
+    exposure=0.0, knee=0.6, auto_sdr=False, quality=100, peak_nits=0, limit_nits=0, transfer="auto",
     win_w=1280, win_h=840, win_x=-1, win_y=-1,
 )
 
@@ -464,7 +464,8 @@ class App:
             os.makedirs(os.path.dirname(out), exist_ok=True)
             jxl2uhdr.encode_uhdr(nits, gamut, out, exposure=float(s["exposure"]), knee=float(s["knee"]),
                                  auto_sdr=bool(s["auto_sdr"]), quality=int(s["quality"]),
-                                 peak_nits=float(s["peak_nits"]), log=self.log, **extra)
+                                 peak_nits=float(s["peak_nits"]), limit_nits=float(s["limit_nits"]),
+                                 log=self.log, **extra)
             if s["keep_date"]:
                 try:
                     st = os.stat(f["path"])
