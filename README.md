@@ -122,6 +122,14 @@ see the base image, which is the point of the format. Click any of them to open 
     <td align="center"><sub>Mountain village. Peak 3100 nits.</sub></td>
     <td align="center"><sub>Golden field. 21 % of the frame above SDR white.</sub></td>
   </tr>
+  <tr>
+    <td><a href="examples/gallery/crimson-desert-red-sunset.jpg"><img src="examples/gallery/crimson-desert-red-sunset.jpg" alt="Crimson Desert, red sunset over the mountains, 4K Ultra HDR"></a></td>
+    <td><a href="examples/gallery/crimson-desert-storm-sky.jpg"><img src="examples/gallery/crimson-desert-storm-sky.jpg" alt="Crimson Desert, storm clouds over a lone tower, 4K Ultra HDR"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Crimson Desert, red sunset. NVIDIA App capture, peak 2250 nits.</sub></td>
+    <td align="center"><sub>Crimson Desert, storm sky. NVIDIA App capture, peak 1000 nits.</sub></td>
+  </tr>
 </table>
 
 More are in [examples/gallery](examples/gallery), and the [project site](https://sgaddameedi.github.io/UltraShot/) shows all of them.
