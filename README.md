@@ -218,6 +218,24 @@ how close the file is to the source, as a PSNR for the base image and as luminan
 reconstructed HDR layer, so you can see for yourself that the conversion is lossless in every way
 that matters.
 
+### Polishing a capture
+
+The inspector's Polish section holds the few adjustments worth making to a game capture before it
+goes out: warmth, contrast, vibrance and shadows, each a single slider, plus a watermark field for
+your handle. They are deliberately few, and they are built so that they cannot damage the HDR. The
+adjustments run in the converter's own linear-light space before anything is rounded, so the
+source file is never touched and the only quantisation is the final JPEG encode, exactly as
+without them. Contrast and shadows fade out above SDR white, which leaves the sun, the sky and the
+lanterns at precisely the brightness they were captured at; warmth and vibrance move colours
+around their own luminance without changing it; the watermark is drawn at SDR white so it reads
+the same on every screen; and nothing is ever pushed above the capture's own peak or below black.
+Polish is per capture and remembered with the list. Apply to all copies one capture's settings to
+every other card, Reset clears them, and a polished card shows a small mark in its caption. The
+preview above the sliders updates as you drag, and the HDR tab shows the finished Ultra HDR
+picture itself, in real HDR on an HDR display, so you grade what you will actually post.
+Changing the polish of a converted capture puts it back to pending so that Convert writes the new
+version.
+
 ### Adjusting the SDR base image
 
 Clicking a card opens the inspector. The preview is the SDR base image, which is the version that

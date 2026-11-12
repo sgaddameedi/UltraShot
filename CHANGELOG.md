@@ -23,6 +23,13 @@ All notable changes to UltraShot are documented here. The format follows
   same tone map so the two differ only by what the encoder changed. The source comparison reports
   the PSNR of the base image against the source, the share of pixels off by more than two levels,
   and the mean, 99th-percentile and over-five-percent luminance error of the reconstructed HDR layer.
+- Polish: per-capture warmth, contrast, vibrance and shadows sliders and a watermark field in the
+  inspector, applied in linear light before the SDR base and the gain map are made. The curves
+  fade out above SDR white so the HDR highlights stay exactly as captured, colours move around
+  their own luminance, nothing exceeds the capture's own peak, and the source file is untouched.
+  An HDR tab in the inspector shows the finished Ultra HDR picture in real HDR while you adjust.
+  Polish is remembered with the list, can be applied to every card, and puts a converted card
+  back to pending.
 - Tiles size themselves to the list: one capture gets a large tile, a few share the width in two or
   three columns, and only a long list falls back to the dense grid. The grid refits whenever the
   window or the panes change.

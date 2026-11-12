@@ -13,7 +13,8 @@ const S = {
   selected: null,
   watching: false,
   batch: null,           // Set of ids in the current conversion batch
-  inspTarget: "full",    // full | ig | heat
+  inspTarget: "full",    // full | ig | heat | hdr
+  edit: null,            // uncommitted polish of the selected card while a slider is being dragged
   api: null,
 };
 let previewSeq = 0, previewTimer = null, previewBusy = false, previewAgain = false;
@@ -141,7 +142,7 @@ function cardInner(f) {
   const meter = st ? Math.min(100, Math.round(100 * Math.log2(Math.max(1, st.peak / 203)) / Math.log2(4000 / 203))) : 0;
   return `<div class="thumb">${thumb}${badge}${peak}</div>
     <div class="meta"><div class="name" title="${esc(f.path)}">${esc(f.name)}</div>
-    <div class="dim"><span>${dim}</span><span>${st ? hdrLabel(st) : ""}</span></div>
+    <div class="dim"><span>${dim}</span><span>${st ? hdrLabel(st) : ""}${f.edit && !polishIsDefault(polishOf(f)) ? '<span class="polished" title="Polished">✦</span>' : ""}</span></div>
     <div class="meter"><i style="width:${meter}%"></i></div></div>`;
 }
 
@@ -222,6 +223,18 @@ function renderInspectorControls() {
   $("#cropFields").style.display = S.inspTarget === "ig" ? "" : "none";
   const dis = !!s.auto_sdr;
   $("#rExposure").disabled = dis; $("#rKnee").disabled = dis;
+  renderPolish();
+}
+
+const POLISH_KEYS = ["warmth", "contrast", "vibrance", "shadows"];
+function polishOf(f) { return Object.assign({ warmth: 0, contrast: 0, vibrance: 0, shadows: 0, watermark: "" }, (f && f.edit) || {}); }
+function polishIsDefault(e) { return POLISH_KEYS.every((k) => !e[k]) && !(e.watermark || "").trim(); }
+function renderPolish() {
+  const f = S.files.get(S.selected); if (!f) return;
+  const e = S.edit || polishOf(f);
+  for (const k of POLISH_KEYS) { const r = $(`#polish [data-k=${k}]`); r.value = e[k]; $("#v" + k[0].toUpperCase() + k.slice(1)).textContent = (e[k] > 0 ? "+" : "") + e[k]; }
+  if (document.activeElement !== $("#tWatermark")) $("#tWatermark").value = e.watermark || "";
+  $("#polishReset").disabled = polishIsDefault(e);
 }
 
 function renderInspectorInfo(f) {
@@ -246,14 +259,14 @@ async function doPreview() {
   if (previewBusy) { previewAgain = true; return; }
   previewBusy = true;
   const seq = ++previewSeq, s = S.settings, id = S.selected;
-  const opts = { exposure: s.exposure, knee: s.knee, auto_sdr: s.auto_sdr, heat: S.inspTarget === "heat", width: 1100 };
+  const opts = { exposure: s.exposure, knee: s.knee, auto_sdr: s.auto_sdr, heat: S.inspTarget === "heat", width: 1100, edit: S.edit || undefined };
   if (S.inspTarget === "ig") Object.assign(opts, { crop: s.ig_crop || "none", cx: s.crop_x, cy: s.crop_y, width: Math.min(1100, s.ig_width) });
   $("#inspLoading").style.display = "";
   try {
-    const r = await S.api.preview(id, opts);
+    const r = S.inspTarget === "hdr" ? await S.api.hdr_preview(id, S.edit || null) : await S.api.preview(id, opts);
     if (seq === previewSeq && r && r.url) {
       $("#inspImg").src = r.url;
-      $("#inspBadge").textContent = S.inspTarget === "heat" ? "orange > 203 nits · pink > 600 nits" : S.inspTarget === "ig" ? `Instagram ${r.w}×${r.h}` : `SDR base · ${r.w}×${r.h} preview`;
+      $("#inspBadge").textContent = S.inspTarget === "heat" ? "orange > 203 nits · pink > 600 nits" : S.inspTarget === "ig" ? `Instagram ${r.w}×${r.h}` : S.inspTarget === "hdr" ? `Ultra HDR ${r.w}×${r.h} · in HDR on an HDR display` : `SDR base · ${r.w}×${r.h} preview`;
       if (r.stats && S.files.get(id)) { S.files.get(id).stats = r.stats; }
     } else if (r && r.error) toast(r.error, "err");
   } catch (e) { toast("preview failed: " + e, "err"); }
@@ -691,6 +704,22 @@ function bindUI() {
   live("#rKnee", "knee", (v) => Number(v).toFixed(2), "#vKnee");
   live("#rCx", "crop_x", (v) => v + "%", "#vCx");
   live("#rCy", "crop_y", (v) => v + "%", "#vCy");
+  // Polish: dragging previews without committing; releasing (or typing a watermark) stores it on the card.
+  const commitPolish = async (patch, everyone) => {
+    if (!S.selected) return;
+    const e = await S.api.set_edit(S.selected, patch, !!everyone);
+    S.edit = null;
+    if (e && S.files.get(S.selected)) S.files.get(S.selected).edit = e;
+    renderPolish(); requestPreview();
+  };
+  document.querySelectorAll("#polish .polish-r").forEach((r) => {
+    r.addEventListener("input", () => { if (!S.selected) return; S.edit = S.edit || polishOf(S.files.get(S.selected)); S.edit[r.dataset.k] = Number(r.value); renderPolish(); requestPreview(); });
+    r.addEventListener("change", () => commitPolish({ [r.dataset.k]: Number(r.value) }));
+  });
+  $("#tWatermark").addEventListener("change", () => commitPolish({ watermark: $("#tWatermark").value.trim() }));
+  $("#tWatermark").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
+  $("#polishReset").addEventListener("click", () => commitPolish({ warmth: 0, contrast: 0, vibrance: 0, shadows: 0, watermark: "" }));
+  $("#polishAll").addEventListener("click", async () => { await commitPolish({}, true); toast("Polish applied to every capture", "ok"); });
 
   $("#chipOut").addEventListener("click", (e) => popover(e.currentTarget, [
     { label: "Full size", hint: "4K HDR subfolder", checked: S.settings.make_full, run: () => saveSetting("make_full", !S.settings.make_full) },

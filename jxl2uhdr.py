@@ -272,6 +272,89 @@ def limit_peak(nits, gamut, limit, log=print):
     return nits * gain[..., None]
 
 
+# ----------------------------------------------------------------------------- polish
+# Per-capture adjustments, applied in linear light before the SDR base is rendered and the gain
+# map is encoded, so the source is untouched and nothing is rounded until the final JPEG. They are
+# built so the HDR survives them: the contrast and shadow curves fade out above SDR white and
+# leave the highlights exactly as captured, warmth and vibrance move colours around their own
+# luminance without changing it, the watermark sits at SDR white, and the result is never allowed
+# above the capture's own peak or below black.
+GRADE_DEFAULTS = dict(warmth=0, contrast=0, vibrance=0, shadows=0, watermark="")
+
+
+def _smoothstep(x, lo, hi):
+    t = np.clip((x - lo) / (hi - lo), 0.0, 1.0)
+    return t * t * (3.0 - 2.0 * t)
+
+
+def grade_is_default(grade):
+    g = grade or {}
+    return all(not g.get(k) for k in ("warmth", "contrast", "vibrance", "shadows")) and not str(g.get("watermark") or "").strip()
+
+
+def _watermark(out, text):
+    """Draw `text` in the bottom-right corner at SDR white with a soft shadow, sized to the width."""
+    from PIL import ImageDraw, ImageFilter, ImageFont
+    h, w = out.shape[:2]
+    size, margin = max(12, int(w * 0.022)), int(w * 0.016)
+    try:
+        font = ImageFont.truetype(r"C:\Windows\Fonts\segoeuib.ttf", size)
+    except OSError:
+        font = ImageFont.load_default()
+    mask = Image.new("L", (w, h), 0)
+    d = ImageDraw.Draw(mask)
+    bb = d.textbbox((0, 0), text, font=font)
+    x, y = w - margin - (bb[2] - bb[0]) - bb[0], h - margin - (bb[3] - bb[1]) - bb[1]
+    shadow = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(shadow).text((x + size * 0.06, y + size * 0.06), text, font=font, fill=255)
+    shadow = shadow.filter(ImageFilter.GaussianBlur(max(1.0, size * 0.08)))
+    d.text((x, y), text, font=font, fill=255)
+    a = np.asarray(mask, np.float32)[..., None] / 255.0 * 0.85
+    s = np.asarray(shadow, np.float32)[..., None] / 255.0 * 0.6
+    out = out * (1.0 - s)
+    return out * (1.0 - a) + SDR_WHITE_NITS * a
+
+
+def apply_grade(nits, gamut, grade):
+    """Apply the per-capture polish to linear nits. Returns the input untouched when nothing is set."""
+    if grade_is_default(grade):
+        return nits
+    g = dict(GRADE_DEFAULTS)
+    g.update({k: v for k, v in (grade or {}).items() if v is not None})
+    w = LUMA_2020 if gamut == ic.ULTRAHDR.CG.BT_2100 else LUMA_709
+    out = nits.astype(np.float32, copy=True)
+    peak = float(out.max())
+    warmth = float(g["warmth"]) / 100.0
+    if warmth:
+        gr, gb = 1.0 + 0.12 * warmth, 1.0 - 0.12 * warmth
+        gg = (1.0 - w[0] * gr - w[2] * gb) / w[1]          # a neutral keeps its luminance
+        out *= np.array([gr, gg, gb], np.float32)
+    contrast, shadows = float(g["contrast"]) / 100.0, float(g["shadows"]) / 100.0
+    if contrast or shadows:
+        Y = np.maximum(out @ w, 1e-4)
+        gain = np.ones_like(Y)
+        if contrast:
+            pivot = 0.18 * SDR_WHITE_NITS
+            curve = pivot * (Y / pivot) ** (1.0 + 0.5 * contrast)
+            protect = 1.0 - _smoothstep(Y, SDR_WHITE_NITS, 1000.0)   # highlights stay as captured
+            gain *= 1.0 + (curve / Y - 1.0) * protect
+        if shadows:
+            reach = 1.0 - _smoothstep(Y, 0.0, 80.0)
+            gain *= 1.0 + 0.7 * shadows * reach * reach
+        out *= gain[..., None]
+    vib = float(g["vibrance"]) / 100.0
+    if vib:
+        Y = (out @ w)[..., None]
+        mx, mn = out.max(axis=2, keepdims=True), out.min(axis=2, keepdims=True)
+        sat = np.where(mx > 1e-4, 1.0 - mn / np.maximum(mx, 1e-4), 0.0)
+        amount = 0.9 * vib * (1.0 - sat) if vib > 0 else 0.9 * vib   # boosts muted colours most
+        out = np.maximum(Y + (out - Y) * (1.0 + amount), 0.0)
+    text = str(g.get("watermark") or "").strip()
+    if text:
+        out = _watermark(out, text)
+    return np.clip(out, 0.0, max(peak, SDR_WHITE_NITS)).astype(np.float32)
+
+
 def encode_uhdr(nits, gamut, output, *, crop="", crop_x=50.0, crop_y=50.0, max_width=0,
                 exposure=0.0, knee=0.6, auto_sdr=False, quality=100, peak_nits=0.0,
                 limit_nits=0.0, log=print):

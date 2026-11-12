@@ -198,6 +198,12 @@ small { color: var(--muted); font-weight: 400; }
 .val { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12.5px; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
 input[type=range] { width: 100%; margin: 8px 0 0; accent-color: var(--accent); height: 20px; }
+#polish { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 18px; }
+.polish-btns { display: flex; gap: 6px; }
+.watermark-row { margin-top: 12px; }
+.insp-body input.text { width: 100%; margin-top: 8px; padding: 8px 10px; border-radius: 9px; border: 1px solid var(--border); background: rgba(255,255,255,.04); color: var(--text); font: inherit; font-size: 13px; outline: none; }
+.insp-body input.text:focus { border-color: var(--accent); }
+.card .polished { color: var(--accent); margin-left: 6px; font-size: 10.5px; }
 .info { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .info .kv { background: var(--panel2); border-radius: 10px; padding: 8px 10px; }
 .info .k { font-size: 11px; color: var(--muted); }

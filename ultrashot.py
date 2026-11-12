@@ -13,6 +13,7 @@ Needs jxl2uhdr.py and the ui/ folder next to this file, plus:
 import base64
 import hashlib
 import io
+import tempfile
 import json
 import os
 import queue
@@ -378,7 +379,7 @@ class App:
 
     def public(self, f):
         return {k: f.get(k) for k in ("id", "name", "path", "size", "status", "stats", "thumb",
-                                      "outputs", "error", "added")}
+                                      "outputs", "error", "added", "edit")}
 
     def state(self):
         # The page asks for the state once it has loaded, normally well after the previous session
@@ -404,7 +405,8 @@ class App:
                 except OSError:
                     size = 0
                 f = dict(id=fid, name=os.path.basename(p), path=p, size=size, status="queued",
-                         stats=None, thumb=None, outputs=[], error=None, added=time.time())
+                         stats=None, thumb=None, outputs=[], error=None, added=time.time(),
+                         edit=dict(jxl2uhdr.GRADE_DEFAULTS))
                 self.files[fid] = f
                 existing.add(p.lower())
                 added.append(f)
@@ -461,7 +463,7 @@ class App:
                 f = dict(id=str(e.get("id") or uuid.uuid4().hex[:10]), name=os.path.basename(path), path=path,
                          size=st.st_size, status=status, stats=None if changed else e.get("stats"),
                          thumb=None, outputs=outputs, error=e.get("error") if status == "failed" else None,
-                         added=float(e.get("added") or st.st_mtime))
+                         added=float(e.get("added") or st.st_mtime), edit=self._edit_of(e.get("edit")))
                 key = self._thumb_key(path, st.st_mtime, st.st_size)
                 keep_keys.add(key)
                 if not changed and f["stats"]:
@@ -510,7 +512,7 @@ class App:
             except OSError:
                 mtime = 0
             out.append(dict(id=f["id"], path=f["path"], size=f["size"], mtime=int(mtime), status=f["status"],
-                            stats=f["stats"], outputs=f["outputs"], error=f["error"], added=f["added"]))
+                            stats=f["stats"], outputs=f["outputs"], error=f["error"], added=f["added"], edit=f.get("edit")))
         return {"version": VERSION, "files": out}
 
     def _write_session(self):
@@ -581,6 +583,34 @@ class App:
             self._dirty.set()
         return len(targets)
 
+    @staticmethod
+    def _edit_of(saved):
+        g = dict(jxl2uhdr.GRADE_DEFAULTS)
+        for k, v in (saved or {}).items():
+            if k in g:
+                g[k] = str(v)[:40] if k == "watermark" else int(max(-100, min(100, float(v or 0))))
+        return g
+
+    def set_edit(self, fid, patch, everyone=False):
+        """Change a capture's polish. A converted card goes back to pending so the next Convert
+        writes the new version; with `everyone` the same values are copied to every card."""
+        with self.lock:
+            src = self.files.get(fid)
+            if not src:
+                return None
+            src["edit"] = self._edit_of({**src.get("edit", {}), **(patch or {})})
+            targets = list(self.files.values()) if everyone else [src]
+            for f in targets:
+                if f is not src:
+                    f["edit"] = dict(src["edit"])
+                if f["status"] in ("done", "skipped"):
+                    f["status"] = "queued"
+        for f in targets:
+            self.emit("file", self.public(f))
+            self.thumb_q.put(f["id"])
+        self._dirty.set()
+        return src["edit"]
+
     # ------------------------------------------------------------- preview cache
     def _load_small(self, path):
         mtime = os.path.getmtime(path)
@@ -607,12 +637,13 @@ class App:
             self.cache.popitem(last=False)
         return small, gamut, stats
 
-    def render(self, small, gamut, width, exposure, knee, auto_sdr=False, crop="none", cx=50, cy=50, heat=False):
+    def render(self, small, gamut, width, exposure, knee, auto_sdr=False, crop="none", cx=50, cy=50, heat=False, grade=None):
         nits = small
         if crop and crop != "none":
             nits = jxl2uhdr.crop_aspect(nits, crop, float(cx), float(cy))
         if nits.shape[1] > width:
             nits = jxl2uhdr.resize_linear(nits, width)
+        nits = jxl2uhdr.apply_grade(nits, gamut, grade)
         if auto_sdr:
             rgb = jxl2uhdr.make_sdr(nits, gamut, 0.0, 1.0)[..., :3]
         else:
@@ -637,7 +668,7 @@ class App:
             try:
                 small, gamut, stats = self._load_small(f["path"])
                 thumb, _, _ = self.render(small, gamut, THUMB_W, self.settings["exposure"],
-                                          self.settings["knee"], self.settings["auto_sdr"])
+                                          self.settings["knee"], self.settings["auto_sdr"], grade=f.get("edit"))
                 f["stats"], f["thumb"] = stats, thumb
                 self._store_thumb(f, thumb)
             except Exception as e:
@@ -654,11 +685,33 @@ class App:
         small, gamut, stats = self._load_small(f["path"])
         s = self.settings
         o = dict(exposure=s["exposure"], knee=s["knee"], auto_sdr=s["auto_sdr"], crop="none",
-                 cx=s["crop_x"], cy=s["crop_y"], heat=False, width=PREVIEW_W)
+                 cx=s["crop_x"], cy=s["crop_y"], heat=False, width=PREVIEW_W, edit=f.get("edit"))
         o.update({k: v for k, v in (opts or {}).items() if v is not None})
         url, w, h = self.render(small, gamut, int(o["width"]), o["exposure"], o["knee"], o["auto_sdr"],
-                                o["crop"], o["cx"], o["cy"], o["heat"])
+                                o["crop"], o["cx"], o["cy"], o["heat"], grade=o["edit"])
         return {"url": url, "w": w, "h": h, "stats": stats}
+
+    def hdr_preview(self, fid, edit=None):
+        """A small Ultra HDR JPEG of the capture as it will be written, polish included, so the
+        window can show it in real HDR on an HDR display."""
+        with self.lock:
+            f = self.files.get(fid)
+        if not f:
+            return None
+        small, gamut, stats = self._load_small(f["path"])
+        nits = jxl2uhdr.resize_linear(small, 1100)
+        s = self.settings
+        tmp = os.path.join(tempfile.gettempdir(), f"ultrashot-hdr-preview-{os.getpid()}.jpg")
+        data = jxl2uhdr.encode_uhdr(jxl2uhdr.apply_grade(nits, gamut, f.get("edit") if edit is None else edit), gamut, tmp,
+                                    exposure=float(s["exposure"]), knee=float(s["knee"]), auto_sdr=bool(s["auto_sdr"]),
+                                    quality=92, peak_nits=float(s["peak_nits"]), limit_nits=float(s["limit_nits"]),
+                                    log=lambda m: None)
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        return {"url": "data:image/jpeg;base64," + base64.b64encode(data).decode("ascii"),
+                "w": nits.shape[1], "h": nits.shape[0], "stats": stats}
 
     def refresh_thumbs(self):
         with self.lock:
@@ -692,6 +745,9 @@ class App:
             return [t[1] for t in targets], False
         t0 = time.time()
         nits, gamut = jxl2uhdr.load_hdr(f["path"], s["transfer"], log=self.log)
+        if not jxl2uhdr.grade_is_default(f.get("edit")):
+            nits = jxl2uhdr.apply_grade(nits, gamut, f["edit"])
+            self.log("applied polish: " + ", ".join(f"{k} {v}" for k, v in f["edit"].items() if v))
         written = []
         for kind, out, extra in todo:
             os.makedirs(os.path.dirname(out), exist_ok=True)
@@ -1021,6 +1077,15 @@ class Api:
         except Exception as e:
             return {"error": f"{type(e).__name__}: {e}"}
 
+    def hdr_preview(self, fid, edit=None):
+        try:
+            return self._app.hdr_preview(fid, edit)
+        except Exception as e:
+            return {"error": f"{type(e).__name__}: {e}"}
+
+    def set_edit(self, fid, patch, everyone=False):
+        return self._app.set_edit(fid, patch, bool(everyone))
+
     def set_settings(self, patch):
         return self._app.set_settings(patch)
 
@@ -1094,6 +1159,7 @@ class Api:
                              "compare the full-size output, not a cropped or resized one"}
         if float(s["limit_nits"]) > 0:
             nits = jxl2uhdr.limit_peak(nits, gamut, float(s["limit_nits"]), log=lambda m: None)
+        nits = jxl2uhdr.apply_grade(nits, gamut, f.get("edit"))
         sdr_src = jxl2uhdr.make_sdr(nits, gamut, float(s["exposure"]), float(s["knee"]))[..., :3]
         base_rgb = np.asarray(Image.open(io.BytesIO(base)).convert("RGB"), np.int16)
         d = np.abs(base_rgb - sdr_src.astype(np.int16))

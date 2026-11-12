@@ -85,6 +85,7 @@
     <button data-v="full" class="on">Full size</button>
     <button data-v="ig">Instagram</button>
     <button data-v="heat">Highlights map</button>
+    <button data-v="hdr" title="The finished Ultra HDR picture, shown in HDR on an HDR display">HDR</button>
   </div>
   <div class="insp-body">
     <div class="field">
@@ -94,6 +95,17 @@
     <div class="field">
       <div class="field-row"><label>Highlight knee <small>where roll-off starts</small></label><span class="val" id="vKnee"></span></div>
       <input type="range" id="rKnee" min="0.1" max="1" step="0.05">
+    </div>
+    <div class="field" id="polish">
+      <div class="field-row"><label>Polish <small>this capture · HDR stays intact</small></label><span class="polish-btns"><button class="ghost tiny" id="polishAll" title="Use the same polish on every capture in the list">Apply to all</button><button class="ghost tiny" id="polishReset">Reset</button></span></div>
+      <div class="two">
+        <div><div class="field-row"><label>Warmth</label><span class="val" id="vWarmth"></span></div><input type="range" class="polish-r" data-k="warmth" id="rWarmth" min="-100" max="100" step="1"></div>
+        <div><div class="field-row"><label>Contrast</label><span class="val" id="vContrast"></span></div><input type="range" class="polish-r" data-k="contrast" id="rContrast" min="-100" max="100" step="1"></div>
+        <div><div class="field-row"><label>Vibrance</label><span class="val" id="vVibrance"></span></div><input type="range" class="polish-r" data-k="vibrance" id="rVibrance" min="-100" max="100" step="1"></div>
+        <div><div class="field-row"><label>Shadows</label><span class="val" id="vShadows"></span></div><input type="range" class="polish-r" data-k="shadows" id="rShadows" min="-100" max="100" step="1"></div>
+      </div>
+      <div class="field-row watermark-row"><label>Watermark <small>bottom right, at SDR white</small></label></div>
+      <input type="text" id="tWatermark" class="text" placeholder="@yourhandle" maxlength="40" spellcheck="false">
     </div>
     <div class="field" id="cropFields">
       <div class="field-row"><label>Instagram crop</label></div>
