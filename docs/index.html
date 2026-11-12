@@ -95,7 +95,7 @@
   .btn:hover { border-color:rgba(255,255,255,.22); text-decoration:none; }
   .btn.on { border-color:var(--accent); color:var(--accent); }
   .stage { position:relative; border-radius:12px; overflow:hidden; background:#000; aspect-ratio:16/9; user-select:none; touch-action:none; cursor:ew-resize; }
-  .stage img, .stage canvas { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block; }
+  .stage img, .stage canvas { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block; -webkit-user-drag:none; user-select:none; pointer-events:none; }
   .stage .sdr-only { dynamic-range-limit:standard; }
   .stage .layer-b { clip-path:inset(0 0 0 var(--wipe,50%)); }
   .stage.plain .layer-b { clip-path:none; }
@@ -312,15 +312,16 @@
   class Stage {
     constructor(el) {
       this.el = el; this.entry = null; this.mode = "wipe"; this.wipe = 50; this.drag = false;
-      el.innerHTML = '<img class="layer-a sdr-only" alt="" crossorigin="anonymous"><canvas class="layer-a hidden"></canvas>'
-        + '<img class="layer-b" alt="" crossorigin="anonymous"><div class="handle"><span>⇔</span></div>'
+      el.innerHTML = '<img class="layer-a sdr-only" alt="" crossorigin="anonymous" draggable="false"><canvas class="layer-a hidden"></canvas>'
+        + '<img class="layer-b" alt="" crossorigin="anonymous" draggable="false"><div class="handle"><span>⇔</span></div>'
         + '<div class="lab a"></div><div class="lab b"></div><div class="probe"></div>';
       this.a = $(".layer-a", el); this.canvas = $("canvas", el); this.b = $(".layer-b", el);
       this.labA = $(".lab.a", el); this.labB = $(".lab.b", el); this.probe = $(".probe", el);
       this.lum = new Image(); this.lumCanvas = document.createElement("canvas"); this.lumCtx = null;
       this.lum.onload = () => { this.lumCanvas.width = this.lum.width; this.lumCanvas.height = this.lum.height; this.lumCtx = this.lumCanvas.getContext("2d", { willReadFrequently: true }); this.lumCtx.drawImage(this.lum, 0, 0); };
       if (!hasDRL) this.b.addEventListener("load", () => { if (this.mode === "wipe") this.drawBase(); });
-      el.addEventListener("pointerdown", (e) => { if (this.mode === "plain") return; this.drag = true; el.setPointerCapture(e.pointerId); this.setWipe(e); });
+      el.addEventListener("dragstart", (e) => e.preventDefault());
+      el.addEventListener("pointerdown", (e) => { if (this.mode === "plain") return; e.preventDefault(); this.drag = true; el.setPointerCapture(e.pointerId); this.setWipe(e); });
       el.addEventListener("pointermove", (e) => { if (this.drag) this.setWipe(e); this.readProbe(e); });
       const end = () => { this.drag = false; };
       el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
