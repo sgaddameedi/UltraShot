@@ -54,6 +54,8 @@ SETTINGS_FILE = os.path.join(SETTINGS_DIR, "settings.json")
 SESSION_FILE = os.path.join(SETTINGS_DIR, "session.json")        # the file list, restored at launch
 THUMB_DIR = os.path.join(os.environ.get("LOCALAPPDATA") or APPDATA, APP_ID, "thumbs")
 SESSION_MAX = 500                                                # cards kept between launches
+# Everything a card remembers about how to make its outputs: the polish and the Instagram framing.
+EDIT_DEFAULTS = dict(jxl2uhdr.GRADE_DEFAULTS, crop_x=50, crop_y=50)
 OLD_SETTINGS_FILE = os.path.join(APPDATA, "JXL Ultra HDR", "settings.json")
 STARTUP_DIR = os.path.join(APPDATA, r"Microsoft\Windows\Start Menu\Programs\Startup")
 STARTUP_LNK = os.path.join(STARTUP_DIR, "UltraShot.lnk")
@@ -406,7 +408,7 @@ class App:
                     size = 0
                 f = dict(id=fid, name=os.path.basename(p), path=p, size=size, status="queued",
                          stats=None, thumb=None, outputs=[], error=None, added=time.time(),
-                         edit=dict(jxl2uhdr.GRADE_DEFAULTS))
+                         edit=dict(EDIT_DEFAULTS))
                 self.files[fid] = f
                 existing.add(p.lower())
                 added.append(f)
@@ -585,15 +587,22 @@ class App:
 
     @staticmethod
     def _edit_of(saved):
-        g = dict(jxl2uhdr.GRADE_DEFAULTS)
+        g = dict(EDIT_DEFAULTS)
         for k, v in (saved or {}).items():
-            if k in g:
-                g[k] = str(v)[:40] if k == "watermark" else int(max(-100, min(100, float(v or 0))))
+            if k not in g:
+                continue
+            if k == "watermark":
+                g[k] = str(v or "")[:40]
+            elif k in ("crop_x", "crop_y"):
+                g[k] = int(max(0, min(100, float(v if v is not None else 50))))
+            else:
+                g[k] = int(max(-100, min(100, float(v or 0))))
         return g
 
     def set_edit(self, fid, patch, everyone=False):
-        """Change a capture's polish. A converted card goes back to pending so the next Convert
-        writes the new version; with `everyone` the same values are copied to every card."""
+        """Change a capture's polish or Instagram framing. A converted card goes back to pending so
+        the next Convert writes the new version; with `everyone` the polish (not the framing, which
+        is per picture) is copied to every card."""
         with self.lock:
             src = self.files.get(fid)
             if not src:
@@ -602,7 +611,7 @@ class App:
             targets = list(self.files.values()) if everyone else [src]
             for f in targets:
                 if f is not src:
-                    f["edit"] = dict(src["edit"])
+                    f["edit"] = self._edit_of({**src["edit"], "crop_x": f["edit"].get("crop_x", 50), "crop_y": f["edit"].get("crop_y", 50)})
                 if f["status"] in ("done", "skipped"):
                     f["status"] = "queued"
         for f in targets:
@@ -685,7 +694,8 @@ class App:
         small, gamut, stats = self._load_small(f["path"])
         s = self.settings
         o = dict(exposure=s["exposure"], knee=s["knee"], auto_sdr=s["auto_sdr"], crop="none",
-                 cx=s["crop_x"], cy=s["crop_y"], heat=False, width=PREVIEW_W, edit=f.get("edit"))
+                 cx=(f.get("edit") or {}).get("crop_x", s["crop_x"]), cy=(f.get("edit") or {}).get("crop_y", s["crop_y"]),
+                 heat=False, width=PREVIEW_W, edit=f.get("edit"))
         o.update({k: v for k, v in (opts or {}).items() if v is not None})
         url, w, h = self.render(small, gamut, int(o["width"]), o["exposure"], o["knee"], o["auto_sdr"],
                                 o["crop"], o["cx"], o["cy"], o["heat"], grade=o["edit"])
@@ -730,7 +740,8 @@ class App:
         if s["make_ig"]:
             crop = "" if s["ig_crop"] in ("", "none") else s["ig_crop"]
             targets.append(("ig", os.path.join(base, s["ig_dir"] or "Insta", stem + ".jpg"),
-                            dict(crop=crop, crop_x=float(s["crop_x"]), crop_y=float(s["crop_y"]),
+                            dict(crop=crop, crop_x=float((f.get("edit") or {}).get("crop_x", s["crop_x"])),
+                                 crop_y=float((f.get("edit") or {}).get("crop_y", s["crop_y"])),
                                  max_width=int(s["ig_width"]))))
         return targets
 

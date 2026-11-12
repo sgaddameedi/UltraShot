@@ -23,6 +23,10 @@ All notable changes to UltraShot are documented here. The format follows
   same tone map so the two differ only by what the encoder changed. The source comparison reports
   the PSNR of the base image against the source, the share of pixels off by more than two levels,
   and the mean, 99th-percentile and over-five-percent luminance error of the reconstructed HDR layer.
+- Instagram framing the Instagram way: with a crop chosen, the inspector shows the crop window over
+  the whole picture and you drag the picture to decide what it keeps, with a grid while dragging.
+  The framing is per capture and remembered with the card; the position sliders are gone.
+- A Reset button for the SDR base look (exposure and highlight knee).
 - Polish: per-capture warmth, contrast, vibrance and shadows sliders and a watermark field in the
   inspector, applied in linear light before the SDR base and the gain map are made. The curves
   fade out above SDR white so the HDR highlights stay exactly as captured, colours move around

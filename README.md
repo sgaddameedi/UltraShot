@@ -96,7 +96,7 @@ of these controls affect the HDR layer, which is always written exactly as captu
     <td><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/docs/screenshots/settings.png"><img src="docs/screenshots/settings.png" alt="The settings page"></a></td>
   </tr>
   <tr>
-    <td align="center"><sub>The Instagram output previewed with a 4:5 crop and position controls</sub></td>
+    <td align="center"><sub>The Instagram output previewed with a 4:5 crop; drag the picture to frame it</sub></td>
     <td align="center"><sub>Settings</sub></td>
   </tr>
   <tr>
@@ -258,7 +258,7 @@ viewer reconstructs, whatever the SDR base looks like.
 Instagram displays gain-map JPEGs in HDR, but its upload flow removes the gain map the moment the image
 is cropped, resized or filtered. The practical rule is that the image must be finished before it is
 uploaded. UltraShot's Instagram output is 1440 pixels wide, the width Instagram stores, and can be
-cropped to 4:5, 1:1, 16:9, 9:16 or 1.91:1 with the crop positioned in the inspector. When uploading,
+cropped to 4:5, 1:1, 16:9, 9:16 or 1.91:1, framed per capture by dragging the picture inside the crop window in the inspector, the way Instagram's own editor works. When uploading,
 use a desktop browser or an Android device, select *Original* in the aspect-ratio menu, and apply no
 adjustments. The full procedure, with notes on which other services preserve the gain map, is in
 [docs/instagram.md](docs/instagram.md).

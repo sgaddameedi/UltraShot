@@ -76,10 +76,11 @@
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
-  <div class="insp-preview">
+  <div class="insp-preview" id="inspPreview">
     <img id="inspImg" alt="">
     <div class="insp-loading" id="inspLoading"><span class="spinner"></span></div>
     <div class="insp-overlay" id="inspBadge"></div>
+    <div class="frame-grid" aria-hidden="true"></div>
   </div>
   <div class="seg" id="inspTarget">
     <button data-v="full" class="on">Full size</button>
@@ -88,6 +89,7 @@
     <button data-v="hdr" title="The finished Ultra HDR picture, shown in HDR on an HDR display">HDR</button>
   </div>
   <div class="insp-body">
+    <div class="field-row group-row"><label>SDR base <small>look for every capture</small></label><button class="ghost tiny" id="lookReset" title="Back to the neutral look">Reset</button></div>
     <div class="field">
       <div class="field-row"><label>Exposure <small>SDR base only</small></label><span class="val" id="vExposure"></span></div>
       <input type="range" id="rExposure" min="-3" max="3" step="0.05">
@@ -112,10 +114,7 @@
       <div class="seg mini" id="inspCrop">
         <button data-v="none">Original</button><button data-v="4:5">4:5</button><button data-v="1:1">1:1</button><button data-v="16:9">16:9</button><button data-v="9:16">9:16</button><button data-v="1.91:1">1.91:1</button>
       </div>
-      <div class="two">
-        <div><div class="field-row"><label>Position X</label><span class="val" id="vCx"></span></div><input type="range" id="rCx" min="0" max="100" step="1"></div>
-        <div><div class="field-row"><label>Position Y</label><span class="val" id="vCy"></span></div><input type="range" id="rCy" min="0" max="100" step="1"></div>
-      </div>
+      <div class="frame-hint" id="frameHint">Drag the picture above to choose what the crop keeps, the way Instagram does.</div>
     </div>
     <div class="info" id="inspInfo"></div>
     <div class="insp-actions">

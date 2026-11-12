@@ -182,6 +182,16 @@ small { color: var(--muted); font-weight: 400; }
 .insp-title { font-weight: 650; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .insp-preview { position: relative; margin: 0 16px; border-radius: 14px; overflow: hidden; background: #000; aspect-ratio: 16/10; display: grid; place-items: center; }
 .insp-preview img { max-width: 100%; max-height: 100%; display: block; }
+.insp-preview.framing { display: block; aspect-ratio: var(--frame, 16/10); margin-left: auto; margin-right: auto; cursor: grab; touch-action: none; user-select: none; }
+.insp-preview.framing img { width: 100%; height: 100%; max-width: none; max-height: none; object-fit: cover; object-position: var(--fx, 50%) var(--fy, 50%); pointer-events: none; }
+.insp-preview.framing.dragging { cursor: grabbing; }
+.frame-grid { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .12s;
+  background-image: linear-gradient(to right, rgba(255,255,255,.45) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,.45) 1px, transparent 1px);
+  background-size: 33.333% 33.333%; background-position: -1px -1px; }
+.insp-preview.framing.dragging .frame-grid { opacity: 1; }
+.frame-hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
+.group-row { margin-top: 14px; }
+.group-row button { margin-left: 8px; }
 .insp-loading { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.3); }
 .insp-loading .spinner { width: 22px; height: 22px; }
 .insp-overlay { position: absolute; left: 10px; bottom: 10px; font-size: 11px; padding: 4px 8px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; }

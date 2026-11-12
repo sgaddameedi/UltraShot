@@ -15,6 +15,7 @@ const S = {
   batch: null,           // Set of ids in the current conversion batch
   inspTarget: "full",    // full | ig | heat | hdr
   edit: null,            // uncommitted polish of the selected card while a slider is being dragged
+  frame: null,           // uncommitted Instagram framing while the picture is being dragged
   api: null,
 };
 let previewSeq = 0, previewTimer = null, previewBusy = false, previewAgain = false;
@@ -216,11 +217,11 @@ function renderInspectorControls() {
   const s = S.settings;
   $("#rExposure").value = s.exposure; $("#vExposure").textContent = (s.exposure >= 0 ? "+" : "") + Number(s.exposure).toFixed(2) + " st";
   $("#rKnee").value = s.knee; $("#vKnee").textContent = Number(s.knee).toFixed(2);
-  $("#rCx").value = s.crop_x; $("#vCx").textContent = s.crop_x + "%";
-  $("#rCy").value = s.crop_y; $("#vCy").textContent = s.crop_y + "%";
   $("#inspCrop").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === (s.ig_crop || "none")));
   $("#inspTarget").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === S.inspTarget));
   $("#cropFields").style.display = S.inspTarget === "ig" ? "" : "none";
+  $("#frameHint").style.display = S.inspTarget === "ig" && (s.ig_crop || "none") !== "none" ? "" : "none";
+  $("#lookReset").disabled = !!s.auto_sdr || (Number(s.exposure) === 0 && Number(s.knee) === 0.6);
   const dis = !!s.auto_sdr;
   $("#rExposure").disabled = dis; $("#rKnee").disabled = dis;
   renderPolish();
@@ -229,6 +230,56 @@ function renderInspectorControls() {
 const POLISH_KEYS = ["warmth", "contrast", "vibrance", "shadows"];
 function polishOf(f) { return Object.assign({ warmth: 0, contrast: 0, vibrance: 0, shadows: 0, watermark: "" }, (f && f.edit) || {}); }
 function polishIsDefault(e) { return POLISH_KEYS.every((k) => !e[k]) && !(e.watermark || "").trim(); }
+// The Instagram copy's final pixel size for the badge: the crop of the capture, scaled to the width setting.
+function igSize(f) {
+  const s = S.settings, st = f && f.stats; if (!st) return ["?", "?"];
+  let w = st.w, h = st.h;
+  const a = s.ig_crop || "none";
+  if (a !== "none") { const [aw, ah] = a.split(":").map(Number), t = aw / ah; if (w / h > t) w = Math.round(h * t); else h = Math.round(w / t); }
+  const sc = Math.min(1, s.ig_width / w);
+  return [Math.round(w * sc), Math.round(h * sc)];
+}
+// Lay the crop window over the preview and let the picture be dragged inside it.
+function applyFraming(on) {
+  const box = $("#inspPreview"), f = S.files.get(S.selected), s = S.settings;
+  box.classList.toggle("framing", on);
+  if (!on) { box.style.removeProperty("--frame"); box.style.width = ""; return; }
+  const [aw, ah] = (s.ig_crop || "16:9").split(":").map(Number);
+  box.style.setProperty("--frame", `${aw}/${ah}`);
+  // keep tall crops from running off the pane: cap the height and narrow the window instead
+  const paneW = box.parentElement.clientWidth - 32, maxH = 400;
+  box.style.width = paneW * ah / aw > maxH ? Math.round(maxH * aw / ah) + "px" : "";
+  const e = S.frame || polishOf(f);
+  box.style.setProperty("--fx", (e.crop_x ?? 50) + "%"); box.style.setProperty("--fy", (e.crop_y ?? 50) + "%");
+}
+function bindFraming() {
+  const box = $("#inspPreview"); let drag = null;
+  box.addEventListener("pointerdown", (e) => {
+    if (!box.classList.contains("framing") || !S.selected) return;
+    const f = S.files.get(S.selected), st = f && f.stats; if (!st) return;
+    const r = box.getBoundingClientRect(), sc = Math.max(r.width / st.w, r.height / st.h);
+    const cur = S.frame || polishOf(f);
+    drag = { x: e.clientX, y: e.clientY, cx: cur.crop_x ?? 50, cy: cur.crop_y ?? 50, ox: st.w * sc - r.width, oy: st.h * sc - r.height };
+    S.frame = { ...cur };
+    box.setPointerCapture(e.pointerId); box.classList.add("dragging"); e.preventDefault();
+  });
+  box.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    // dragging the picture to the right reveals more of its left side, so the kept part moves left
+    const cx = drag.ox > 1 ? drag.cx - (e.clientX - drag.x) / drag.ox * 100 : 50;
+    const cy = drag.oy > 1 ? drag.cy - (e.clientY - drag.y) / drag.oy * 100 : 50;
+    S.frame.crop_x = Math.round(Math.max(0, Math.min(100, cx))); S.frame.crop_y = Math.round(Math.max(0, Math.min(100, cy)));
+    box.style.setProperty("--fx", S.frame.crop_x + "%"); box.style.setProperty("--fy", S.frame.crop_y + "%");
+  });
+  const end = async () => {
+    if (!drag) return;
+    drag = null; box.classList.remove("dragging");
+    const patch = { crop_x: S.frame.crop_x, crop_y: S.frame.crop_y }; S.frame = null;
+    const ed = await S.api.set_edit(S.selected, patch, false);
+    if (ed && S.files.get(S.selected)) S.files.get(S.selected).edit = ed;
+  };
+  box.addEventListener("pointerup", end); box.addEventListener("pointercancel", end);
+}
 function renderPolish() {
   const f = S.files.get(S.selected); if (!f) return;
   const e = S.edit || polishOf(f);
@@ -260,13 +311,17 @@ async function doPreview() {
   previewBusy = true;
   const seq = ++previewSeq, s = S.settings, id = S.selected;
   const opts = { exposure: s.exposure, knee: s.knee, auto_sdr: s.auto_sdr, heat: S.inspTarget === "heat", width: 1100, edit: S.edit || undefined };
-  if (S.inspTarget === "ig") Object.assign(opts, { crop: s.ig_crop || "none", cx: s.crop_x, cy: s.crop_y, width: Math.min(1100, s.ig_width) });
+  // Instagram framing happens in the page: the whole picture is rendered once and the crop window
+  // is laid over it, so dragging never waits for a new render.
+  const framing = S.inspTarget === "ig" && (s.ig_crop || "none") !== "none";
+  if (S.inspTarget === "ig") Object.assign(opts, { crop: "none", width: Math.min(1100, Math.max(s.ig_width, 720)) });
+  applyFraming(framing);
   $("#inspLoading").style.display = "";
   try {
     const r = S.inspTarget === "hdr" ? await S.api.hdr_preview(id, S.edit || null) : await S.api.preview(id, opts);
     if (seq === previewSeq && r && r.url) {
       $("#inspImg").src = r.url;
-      $("#inspBadge").textContent = S.inspTarget === "heat" ? "orange > 203 nits · pink > 600 nits" : S.inspTarget === "ig" ? `Instagram ${r.w}×${r.h}` : S.inspTarget === "hdr" ? `Ultra HDR ${r.w}×${r.h} · in HDR on an HDR display` : `SDR base · ${r.w}×${r.h} preview`;
+      $("#inspBadge").textContent = S.inspTarget === "heat" ? "orange > 203 nits · pink > 600 nits" : S.inspTarget === "ig" ? `Instagram ${igSize(S.files.get(id)).join("×")}` : S.inspTarget === "hdr" ? `Ultra HDR ${r.w}×${r.h} · in HDR on an HDR display` : `SDR base · ${r.w}×${r.h} preview`;
       if (r.stats && S.files.get(id)) { S.files.get(id).stats = r.stats; }
     } else if (r && r.error) toast(r.error, "err");
   } catch (e) { toast("preview failed: " + e, "err"); }
@@ -392,7 +447,7 @@ async function saveSetting(key, val) {
   if (key === "theme") applyTheme();
   renderChips(); renderWatch(); renderInspectorControls();
   if (["save_mode", "save_dir", "make_full", "make_ig", "auto_sdr", "suffix", "full_dir", "watch", "watch_subfolders"].includes(key)) renderSettings();
-  if (["exposure", "knee", "auto_sdr", "ig_crop", "crop_x", "crop_y", "transfer", "ig_width"].includes(key)) requestPreview();
+  if (["exposure", "knee", "auto_sdr", "ig_crop", "transfer", "ig_width"].includes(key)) requestPreview();
 }
 
 /* Side panes keep comfortable widths; when another pane would not fit beside the content,
@@ -702,8 +757,11 @@ function bindUI() {
   };
   live("#rExposure", "exposure", (v) => (v >= 0 ? "+" : "") + Number(v).toFixed(2) + " st", "#vExposure");
   live("#rKnee", "knee", (v) => Number(v).toFixed(2), "#vKnee");
-  live("#rCx", "crop_x", (v) => v + "%", "#vCx");
-  live("#rCy", "crop_y", (v) => v + "%", "#vCy");
+  bindFraming();
+  $("#lookReset").addEventListener("click", async () => {
+    S.settings = await S.api.set_settings({ exposure: 0, knee: 0.6 });
+    renderChips(); renderInspectorControls(); requestPreview();
+  });
   // Polish: dragging previews without committing; releasing (or typing a watermark) stores it on the card.
   const commitPolish = async (patch, everyone) => {
     if (!S.selected) return;

@@ -18,7 +18,7 @@ Delete the file to reset everything.
 | Full size | On | Full-resolution Ultra HDR JPEG into the *4K HDR* subfolder |
 | Instagram | On | Downscaled copy into the *Insta* subfolder |
 | Width | 1440 px | Width of the Instagram copy. Instagram stores 1440 px; anything wider is resized by Instagram, which strips the gain map |
-| Crop | Original | Aspect ratio of the Instagram copy. Position it in the inspector |
+| Crop | Original | Aspect ratio of the Instagram copy. Each capture is framed in the inspector by dragging the picture inside the crop window, and the framing is remembered with the card |
 | Subfolder names | `4K HDR`, `Insta` | Free text |
 
 ## Saving
