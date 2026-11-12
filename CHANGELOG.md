@@ -23,6 +23,9 @@ All notable changes to UltraShot are documented here. The format follows
   same tone map so the two differ only by what the encoder changed. The source comparison reports
   the PSNR of the base image against the source, the share of pixels off by more than two levels,
   and the mean, 99th-percentile and over-five-percent luminance error of the reconstructed HDR layer.
+- One set of control sizes across the window: every chip, button, input, icon button and search box
+  shares the same height, corner radius, border and padding, and the grid bar no longer sits on a
+  negative offset that could clip the search box's edge.
 - A bar above the tiles with search, a filter (pending, converted, failed; JPEG XL or JPEG XR;
   polished only) and a sort (added, capture date, name, brightest, largest). The Convert button and
   the viewer follow what is shown, the sort is remembered, and Ctrl+F jumps to the search.
