@@ -23,6 +23,13 @@ All notable changes to UltraShot are documented here. The format follows
   same tone map so the two differ only by what the encoder changed. The source comparison reports
   the PSNR of the base image against the source, the share of pixels off by more than two levels,
   and the mean, 99th-percentile and over-five-percent luminance error of the reconstructed HDR layer.
+- Convert again: a converted card can be converted a second time, replacing the files written
+  before, from the inspector button or the card's menu, without turning on the global overwrite
+  setting. A change of polish or framing marks the card for this automatically.
+- A right-click menu on every card: convert or convert again, view the result, open it or the
+  capture in their default apps, show either in its folder, reset polish and framing, remove.
+- The inspector, log and settings panes can be rearranged by dragging their headers and resized
+  from their left edge; the arrangement is remembered.
 - Instagram framing the Instagram way: with a crop chosen, the inspector shows the crop window over
   the whole picture and you drag the picture to decide what it keeps, with a grid while dragging.
   The framing is per capture and remembered with the card; the position sliders are gone.

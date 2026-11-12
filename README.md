@@ -234,7 +234,11 @@ every other card, Reset clears them, and a polished card shows a small mark in i
 preview above the sliders updates as you drag, and the HDR tab shows the finished Ultra HDR
 picture itself, in real HDR on an HDR display, so you grade what you will actually post.
 Changing the polish of a converted capture puts it back to pending so that Convert writes the new
-version.
+version, and a converted card can be converted again at any time, replacing the earlier files,
+from the inspector's button or the card's right-click menu, which also offers the result, the
+capture, their folders, a reset of polish and framing, and removal from the list. The inspector,
+settings and log open as panes beside the list; drag a pane's header to rearrange them and its
+left edge to resize it, and the arrangement is remembered.
 
 ### Adjusting the SDR base image
 

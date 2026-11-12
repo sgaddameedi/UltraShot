@@ -38,6 +38,7 @@ function applyState(st) {
   for (const f of st.files) { S.files.set(f.id, f); S.order.push(f.id); }
   $("#ver").textContent = "v" + st.version;
   applyTheme();
+  applyPaneLayout();
 }
 
 function applyTheme() {
@@ -130,6 +131,7 @@ function cardFor(f) {
   c.innerHTML = cardInner(f);
   c.addEventListener("click", () => select(f.id));
   c.addEventListener("dblclick", () => openResult(f.id));
+  c.addEventListener("contextmenu", (e) => { e.preventDefault(); select(f.id); cardMenu(f.id, e); });
   return c;
 }
 
@@ -299,6 +301,9 @@ function renderInspectorInfo(f) {
     kv("Outputs", f.outputs?.length ? f.outputs.map((o) => esc(o.split(/[\\/]/).slice(-2).join("\\"))).join("<br>") : "—");
   const hasOut = !!(f.outputs && f.outputs.length);
   $("#inspReveal").disabled = !hasOut; $("#inspView").disabled = !hasOut; $("#inspOpen").disabled = !hasOut;
+  $("#inspConvert").textContent = isConverted(f) ? "Convert again" : "Convert this";
+  $("#inspConvert").title = isConverted(f) ? "Write the outputs again, replacing the files from before" : "";
+  $("#inspConvert").disabled = f.status === "working";
 }
 
 function requestPreview() {
@@ -467,12 +472,71 @@ function closePane(id) {
 }
 function fitPanes() {
   const avail = window.innerWidth - CONTENT_MIN;
-  while (paneOrder.length > 1 && paneOrder.reduce((s, id) => s + PANES[id], 0) > avail) {
+  while (paneOrder.length > 1 && paneOrder.reduce((s, id) => s + paneMin(id), 0) > avail) {
     const oldest = paneOrder[0];
     if (oldest === "inspector") { closeInspector(); } else { closePane(oldest); }
   }
 }
 window.addEventListener("resize", fitPanes);
+
+// The panes can be rearranged by dragging their headers and resized from their left edge, and
+// both are remembered.
+const PANE_IDS = ["inspector", "logdrawer", "settings"];
+function paneSequence() { return PANE_IDS.slice().sort((a, b) => (parseInt(document.getElementById(a).style.order) || 0) - (parseInt(document.getElementById(b).style.order) || 0)); }
+function applyPaneLayout() {
+  const s = S.settings || {};
+  const order = ((s.pane_order || []).filter((id) => PANE_IDS.includes(id)));
+  for (const id of PANE_IDS) if (!order.includes(id)) order.push(id);
+  order.forEach((id, i) => { document.getElementById(id).style.order = i + 1; });
+  for (const [id, w] of Object.entries(s.pane_widths || {})) {
+    const pane = document.getElementById(id);
+    if (pane && w >= PANES[id] - 100) setPaneWidth(pane, w);
+  }
+}
+// A pane's width is its flex basis, its minimum and its maximum at once, so a saved width holds
+// even when the window is full and the panes would otherwise shrink to their minimums.
+function setPaneWidth(pane, w) { for (const v of ["--w", "--min", "--wmax"]) pane.style.setProperty(v, w + "px"); }
+function paneMin(id) { return (S.settings && S.settings.pane_widths || {})[id] || PANES[id]; }
+function bindPaneDrag() {
+  const marker = el("div", "pane-marker"); document.body.appendChild(marker);
+  const dropTarget = (x, self) => {
+    const open = paneSequence().filter((p) => document.getElementById(p).classList.contains("open"));
+    for (const p of open) { const r = document.getElementById(p).getBoundingClientRect(); if (x >= r.left && x <= r.right) return { id: p, before: x < (r.left + r.right) / 2 }; }
+    if (!open.length) return null;
+    const first = document.getElementById(open[0]).getBoundingClientRect(), last = document.getElementById(open[open.length - 1]).getBoundingClientRect();
+    return x < first.left ? { id: open[0], before: true } : x > last.right ? { id: open[open.length - 1], before: false } : null;
+  };
+  for (const [id, sel] of [["inspector", ".insp-head"], ["logdrawer", ".drawer-head"], ["settings", ".page-head"]]) {
+    const pane = document.getElementById(id), head = pane.querySelector(sel);
+    head.classList.add("pane-grip"); head.title = "Drag to rearrange the panes";
+    let drag = null;
+    head.addEventListener("pointerdown", (e) => { if (e.button !== 0 || e.target.closest("button, input, select, a")) return; drag = { x: e.clientX, y: e.clientY, live: false, target: null }; try { head.setPointerCapture(e.pointerId); } catch (err) {} });
+    head.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      if (!drag.live) { if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return; drag.live = true; pane.classList.add("pane-dragging"); document.body.classList.add("pane-drag"); }
+      const t = drag.target = dropTarget(e.clientX, id);
+      if (t && t.id !== id) { const r = document.getElementById(t.id).getBoundingClientRect(); marker.style.display = "block"; marker.style.left = ((t.before ? r.left : r.right) - 2) + "px"; marker.style.top = r.top + "px"; marker.style.height = r.height + "px"; }
+      else marker.style.display = "none";
+    });
+    const end = () => {
+      if (!drag) return;
+      const t = drag.live ? drag.target : null; drag = null;
+      pane.classList.remove("pane-dragging"); document.body.classList.remove("pane-drag"); marker.style.display = "none";
+      if (!t || t.id === id) return;
+      const seq = paneSequence().filter((p) => p !== id); const i = seq.indexOf(t.id); seq.splice(t.before ? i : i + 1, 0, id);
+      seq.forEach((p, k) => { document.getElementById(p).style.order = k + 1; });
+      saveSetting("pane_order", seq);
+    };
+    head.addEventListener("pointerup", end); head.addEventListener("pointercancel", end);
+    // width: drag the pane's left edge
+    const grip = el("div", "pane-resize"); grip.title = "Drag to resize"; pane.appendChild(grip);
+    let rs = null;
+    grip.addEventListener("pointerdown", (e) => { rs = { x: e.clientX, w: pane.getBoundingClientRect().width, last: null }; pane.classList.add("resizing"); try { grip.setPointerCapture(e.pointerId); } catch (err) {} e.preventDefault(); });
+    grip.addEventListener("pointermove", (e) => { if (!rs) return; const w = Math.round(Math.max(PANES[id] - 100, Math.min(window.innerWidth - CONTENT_MIN, rs.w + (rs.x - e.clientX)))); rs.last = w; setPaneWidth(pane, w); });
+    const stop = () => { if (!rs) return; const w = rs.last; rs = null; pane.classList.remove("resizing"); if (w) saveSetting("pane_widths", { ...(S.settings.pane_widths || {}), [id]: w }); };
+    grip.addEventListener("pointerup", stop); grip.addEventListener("pointercancel", stop);
+  }
+}
 function openSettings() { openPane("settings"); renderSettings(); }
 function closeSettings() { closePane("settings"); }
 function openLog() { openPane("logdrawer"); const pre = $("#logbody"); pre.scrollTop = pre.scrollHeight; }
@@ -480,17 +544,26 @@ function closeLog() { closePane("logdrawer"); }
 function toggleLog() { $("#logdrawer").classList.contains("open") ? closeLog() : openLog(); }
 
 /* ------------------------------------------------------------------ popovers, toasts, log */
-function popover(anchor, items) {
+function popover(anchor, items, at) {
   const p = $("#popover"); p.innerHTML = ""; p.classList.remove("hidden");
   for (const it of items) {
     if (it === "-") { p.appendChild(el("div", "sep")); continue; }
-    const b = el("button", "item");
+    if (it.hidden) continue;
+    const b = el("button", "item" + (it.danger ? " danger" : "")); b.disabled = !!it.disabled;
     b.innerHTML = `<span><span>${it.label}</span>${it.hint ? `<small>${it.hint}</small>` : ""}</span><span class="check">${it.checked ? "✓" : ""}</span>`;
     b.addEventListener("click", () => { p.classList.add("hidden"); it.run(); });
     p.appendChild(b);
   }
-  const r = anchor.getBoundingClientRect();
-  p.style.left = r.left + "px"; p.style.bottom = (innerHeight - r.top + 8) + "px"; p.style.top = "auto";
+  if (at) {
+    // a context menu: open at the pointer, kept inside the window
+    p.style.bottom = "auto"; p.style.left = "0px"; p.style.top = "0px";
+    const w = p.offsetWidth, h = p.offsetHeight;
+    p.style.left = Math.max(8, Math.min(at.x, innerWidth - w - 8)) + "px";
+    p.style.top = Math.max(8, Math.min(at.y, innerHeight - h - 8)) + "px";
+  } else {
+    const r = anchor.getBoundingClientRect();
+    p.style.left = r.left + "px"; p.style.bottom = (innerHeight - r.top + 8) + "px"; p.style.top = "auto";
+  }
   const close = (e) => { if (!p.contains(e.target) && e.target !== anchor) { p.classList.add("hidden"); document.removeEventListener("mousedown", close); } };
   setTimeout(() => document.addEventListener("mousedown", close), 0);
 }
@@ -715,7 +788,28 @@ async function loadInfo() {
 
 /* ------------------------------------------------------------------ actions */
 async function convertAll() { const ids = pendingIds(); if (!ids.length) return; S.batch = new Set(ids); await S.api.convert(ids); updateProgress(); updateConvertButton(); }
-async function convertOne(id) { S.batch = new Set([...(S.batch || []), id]); await S.api.convert([id]); updateProgress(); }
+async function convertOne(id, force) { S.batch = new Set([...(S.batch || []), id]); await S.api.convert([id], !!force); updateProgress(); updateConvertButton(); }
+const isConverted = (f) => f && ["done", "skipped"].includes(f.status);
+
+// Right-click menu on a card: everything you can do with one capture, in one place.
+function cardMenu(id, e) {
+  const f = S.files.get(id); if (!f) return;
+  const hasOut = !!(f.outputs && f.outputs.length), out = hasOut ? f.outputs[0] : null;
+  const polished = f.edit && !polishIsDefault(polishOf(f));
+  popover(null, [
+    isConverted(f) ? { label: "Convert again", hint: "replaces the files written before", run: () => convertOne(id, true) }
+                   : { label: f.status === "working" ? "Converting…" : "Convert", disabled: f.status === "working", run: () => convertOne(id) },
+    { label: "View result", hint: "in-app viewer", disabled: !hasOut, run: () => openLightbox(id) },
+    { label: "Open result in default viewer", disabled: !hasOut, run: () => S.api.open_path(out) },
+    { label: "Show result in folder", disabled: !hasOut, run: () => S.api.reveal(out) },
+    "-",
+    { label: "Open the capture", hint: "in its default app", run: () => S.api.open_path(f.path) },
+    { label: "Show the capture in folder", run: () => S.api.reveal(f.path) },
+    "-",
+    { label: "Reset polish and framing", hidden: !polished && !(f.edit && (f.edit.crop_x !== 50 || f.edit.crop_y !== 50)), run: () => S.api.set_edit(id, { warmth: 0, contrast: 0, vibrance: 0, shadows: 0, watermark: "", crop_x: 50, crop_y: 50 }, false).then((ed) => { if (ed && S.files.get(id)) S.files.get(id).edit = ed; if (S.selected === id) { renderPolish(); requestPreview(); } }) },
+    { label: "Remove from list", hint: "the files stay on disk", danger: true, run: () => S.api.remove(id) },
+  ], { x: e.clientX, y: e.clientY });
+}
 
 function bindUI() {
   $("#empty").addEventListener("click", () => S.api.pick_files());
@@ -730,7 +824,7 @@ function bindUI() {
   $("#btnLogClear").addEventListener("click", () => { $("#logbody").innerHTML = ""; });
   $("#watchPill").addEventListener("click", () => S.api.set_watch(!S.watching));
   $("#inspClose").addEventListener("click", closeInspector);
-  $("#inspConvert").addEventListener("click", () => S.selected && convertOne(S.selected));
+  $("#inspConvert").addEventListener("click", () => S.selected && convertOne(S.selected, isConverted(S.files.get(S.selected))));
   $("#inspRemove").addEventListener("click", () => S.selected && S.api.remove(S.selected));
   $("#inspReveal").addEventListener("click", () => { const f = S.files.get(S.selected); if (f?.outputs?.length) S.api.reveal(f.outputs[0]); });
   $("#inspView").addEventListener("click", () => S.selected && openLightbox(S.selected));
@@ -758,6 +852,7 @@ function bindUI() {
   live("#rExposure", "exposure", (v) => (v >= 0 ? "+" : "") + Number(v).toFixed(2) + " st", "#vExposure");
   live("#rKnee", "knee", (v) => Number(v).toFixed(2), "#vKnee");
   bindFraming();
+  bindPaneDrag();
   $("#lookReset").addEventListener("click", async () => {
     S.settings = await S.api.set_settings({ exposure: 0, knee: 0.6 });
     renderChips(); renderInspectorControls(); requestPreview();

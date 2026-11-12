@@ -85,6 +85,7 @@ DEFAULTS = dict(
     tray=True, startup=True, explorer_menu=False,
     exposure=0.0, knee=0.6, auto_sdr=False, quality=100, peak_nits=0, limit_nits=0, transfer="auto",
     win_w=1280, win_h=840, win_x=-1, win_y=-1,
+    pane_order=[], pane_widths={},
 )
 
 
@@ -382,7 +383,7 @@ class App:
 
     def public(self, f):
         return {k: f.get(k) for k in ("id", "name", "path", "size", "status", "stats", "thumb",
-                                      "outputs", "error", "added", "edit")}
+                                      "outputs", "error", "added", "edit", "redo")}
 
     def state(self):
         # The page asks for the state once it has loaded, normally well after the previous session
@@ -409,7 +410,7 @@ class App:
                     size = 0
                 f = dict(id=fid, name=os.path.basename(p), path=p, size=size, status="queued",
                          stats=None, thumb=None, outputs=[], error=None, added=time.time(),
-                         edit=dict(EDIT_DEFAULTS))
+                         edit=dict(EDIT_DEFAULTS), redo=False)
                 self.files[fid] = f
                 existing.add(p.lower())
                 added.append(f)
@@ -466,7 +467,8 @@ class App:
                 f = dict(id=str(e.get("id") or uuid.uuid4().hex[:10]), name=os.path.basename(path), path=path,
                          size=st.st_size, status=status, stats=None if changed else e.get("stats"),
                          thumb=None, outputs=outputs, error=e.get("error") if status == "failed" else None,
-                         added=float(e.get("added") or st.st_mtime), edit=self._edit_of(e.get("edit")))
+                         added=float(e.get("added") or st.st_mtime), edit=self._edit_of(e.get("edit")),
+                         redo=bool(e.get("redo")))
                 key = self._thumb_key(path, st.st_mtime, st.st_size)
                 keep_keys.add(key)
                 if not changed and f["stats"]:
@@ -515,7 +517,7 @@ class App:
             except OSError:
                 mtime = 0
             out.append(dict(id=f["id"], path=f["path"], size=f["size"], mtime=int(mtime), status=f["status"],
-                            stats=f["stats"], outputs=f["outputs"], error=f["error"], added=f["added"], edit=f.get("edit")))
+                            stats=f["stats"], outputs=f["outputs"], error=f["error"], added=f["added"], edit=f.get("edit"), redo=bool(f.get("redo"))))
         return {"version": VERSION, "files": out}
 
     def _write_session(self):
@@ -572,12 +574,16 @@ class App:
         self.emit("cleared", list(keep.keys()))
         self._dirty.set()
 
-    def convert(self, ids=None):
+    def convert(self, ids=None, force=False):
+        """Queue cards for conversion. With `force` the outputs are written again even though they
+        exist, which is how a capture is converted a second time after a change of mind."""
         with self.lock:
             targets = [self.files[i] for i in (ids or list(self.files.keys())) if i in self.files]
             for f in targets:
                 if f["status"] == "working":
                     continue
+                if force:
+                    f["redo"] = True
                 f["status"], f["error"] = "queued", None
                 self.convert_q.put(f["id"])
         for f in targets:
@@ -614,7 +620,7 @@ class App:
                 if f is not src:
                     f["edit"] = self._edit_of({**src["edit"], "crop_x": f["edit"].get("crop_x", 50), "crop_y": f["edit"].get("crop_y", 50)})
                 if f["status"] in ("done", "skipped"):
-                    f["status"] = "queued"
+                    f["status"], f["redo"] = "queued", True      # the next Convert writes the new version
         for f in targets:
             self.emit("file", self.public(f))
             self.thumb_q.put(f["id"])
@@ -751,7 +757,10 @@ class App:
         targets = self.output_paths(f)
         if not targets:
             raise RuntimeError("no outputs enabled (Settings → Output)")
-        todo = [t for t in targets if s["overwrite"] or not os.path.exists(t[1])]
+        redo = bool(f.get("redo"))
+        todo = [t for t in targets if s["overwrite"] or redo or not os.path.exists(t[1])]
+        if redo and any(os.path.exists(t[1]) for t in targets):
+            self.log(f"replacing the outputs of {f['name']}")
         if not todo:
             self.log(f"skip {f['name']}: outputs already exist")
             return [t[1] for t in targets], False
@@ -774,6 +783,7 @@ class App:
                 except OSError:
                     pass
             written.append(out)
+        f["redo"] = False
         self.log(f"done {f['name']} in {time.time() - t0:.1f}s")
         return written, True
 
@@ -1080,8 +1090,8 @@ class Api:
     def clear_done(self):
         self._app.clear_done()
 
-    def convert(self, ids=None):
-        return self._app.convert(ids)
+    def convert(self, ids=None, force=False):
+        return self._app.convert(ids, bool(force))
 
     def preview(self, fid, opts=None):
         try:
