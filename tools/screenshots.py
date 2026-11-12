@@ -62,6 +62,11 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
 
+    # Keep the demo run away from the real app's remembered list and thumbnail cache.
+    import tempfile
+    scratch = tempfile.mkdtemp(prefix="ultrashot-shots-")
+    U.SESSION_FILE = os.path.join(scratch, "session.json")
+    U.THUMB_DIR = os.path.join(scratch, "thumbs")
     app = U.App()
     app.settings.update(watch=False, startup=False, explorer_menu=False, tray=False, theme="dark",
                         ig_crop="4:5", exposure=0.0, knee=0.6, auto_sdr=False)

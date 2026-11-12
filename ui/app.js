@@ -82,8 +82,30 @@ function renderGrid() {
   empty.classList.toggle("hidden", has);
   grid.innerHTML = "";
   for (const id of S.order) grid.appendChild(cardFor(S.files.get(id)));
+  fitGrid();
   updateConvertButton();
 }
+
+// Tiles grow to use the space: one capture fills the view, a handful share it, and only a long
+// list falls back to the dense grid. Re-run whenever the list or the available area changes.
+function fitGrid() {
+  const grid = $("#grid"), main = $("#main"), n = S.order.length;
+  if (!n) return;
+  const gap = 14, cs = getComputedStyle(main);
+  const W = main.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const H = main.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const minTile = innerWidth < 1100 ? 220 : 250, caption = 78;
+  const maxCols = Math.max(1, Math.floor((W + gap) / (minTile + gap)));
+  let cols = Math.min(maxCols, Math.ceil(Math.sqrt(n)));
+  let tile = (W - gap * (cols - 1)) / cols;
+  // a few big tiles must still fit the height of the view, two rows at most for 2-4 captures
+  const rows = Math.ceil(n / cols);
+  const byHeight = ((H - gap * (rows - 1)) / rows - caption) * 16 / 9;
+  tile = Math.max(minTile, Math.min(tile, 720, byHeight));
+  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, ${Math.floor(tile)}px))`;
+  grid.style.justifyContent = "start";
+}
+new ResizeObserver(() => fitGrid()).observe(document.getElementById("main"));
 
 function pendingIds() {
   const redo = !!S.settings.overwrite;
@@ -422,7 +444,7 @@ function appendLog(t, msg) {
 }
 
 /* ------------------------------------------------------------------ result viewer */
-const LB = { ids: [], i: 0, which: "ig", path: null, seq: 0, info: false, report: "", compare: false, cmpMode: "sdrhdr", cmpSeq: 0 };
+const LB = { ids: [], i: 0, which: "ig", path: null, seq: 0, info: false, report: "", compare: false, cmpMode: "sdrhdr", cmpZoom: "fit", cmpSeq: 0 };
 
 function convertedIds() { return S.order.filter((id) => { const f = S.files.get(id); return f && f.outputs && f.outputs.length; }); }
 
@@ -456,9 +478,10 @@ async function loadCompare() {
   const seq = ++LB.cmpSeq, stage = $("#cmpStage"), one = LB.cmpMode === "source";
   $("#cmpMode").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === LB.cmpMode));
   $("#cmpLoading").style.display = ""; $("#cmpMetrics").innerHTML = ""; $("#cmpHint").textContent = "";
-  stage.classList.toggle("one-to-one", one);
+  stage.classList.remove("one-to-one");
   stage.style.maxWidth = ""; stage.style.maxHeight = "";
   stage.style.setProperty("--px", "0px"); stage.style.setProperty("--py", "0px");
+  $("#cmpZoom").classList.toggle("hidden", !one);
   setWipe(50);
   let r;
   try { r = one ? await S.api.compare_source(id) : await S.api.compare_sdr_hdr(id, LB.which); } catch (e) { r = { error: String(e) }; }
@@ -468,21 +491,14 @@ async function loadCompare() {
   if (one) {
     $("#cmpImgA").src = r.src_url; $("#cmpImgB").src = r.base_url;
     $("#cmpLabelA").textContent = "Source, same tone map"; $("#cmpLabelB").textContent = "Output base image";
-    $("#cmpHint").textContent = "Actual pixels. Drag the image to pan, the handle to wipe.";
     const m = r.metrics, sdrOk = m.sdr_psnr_db >= 40, hdrOk = m.hdr_p99_rel_err <= 5;
     $("#cmpMetrics").innerHTML =
       `<span>SDR base vs source: <b class="${sdrOk ? "ok" : "warn"}">${m.sdr_psnr_db >= 99 ? "identical" : m.sdr_psnr_db.toFixed(1) + " dB PSNR"}</b>, max ${m.sdr_max_diff}/255, ${m.sdr_pixels_over_2.toFixed(2)}% of pixels off by more than 2 levels</span>` +
       `<span>HDR layer vs source: <b class="${hdrOk ? "ok" : "warn"}">${m.hdr_mean_rel_err.toFixed(2)}% mean luminance error</b>, ${m.hdr_p99_rel_err.toFixed(1)}% at the 99th percentile, ${m.hdr_pixels_over_5pct.toFixed(2)}% of pixels off by more than 5% (pixels above 5 nits)</span>` +
       `<span>Peak: source <b>${Math.round(m.hdr_peak_source)}</b> nits, output <b>${Math.round(m.hdr_peak_output)}</b> nits</span>` +
       `<span>Rendered with the current look (exposure ${m.look.exposure >= 0 ? "+" : ""}${m.look.exposure.toFixed(2)}, knee ${m.look.knee.toFixed(2)}${m.look.limit_nits ? ", limit " + m.look.limit_nits + " nits" : ""})</span>`;
-    // At 1:1 the stage never exceeds the image, so a small capture sits centred with the wipe
-    // running across the picture, and a large one starts centred on its middle.
-    $("#cmpImgA").onload = () => {
-      const img = $("#cmpImgA");
-      stage.style.maxWidth = img.naturalWidth + "px"; stage.style.maxHeight = img.naturalHeight + "px";
-      const dx = Math.min(0, (stage.clientWidth - img.naturalWidth) / 2), dy = Math.min(0, (stage.clientHeight - img.naturalHeight) / 2);
-      stage.style.setProperty("--px", dx + "px"); stage.style.setProperty("--py", dy + "px");
-    };
+    $("#cmpImgA").onload = () => applyZoom();
+    if ($("#cmpImgA").complete && $("#cmpImgA").naturalWidth) applyZoom();
   } else {
     stage.style.maxWidth = ""; stage.style.maxHeight = "";
     $("#cmpImgA").src = r.base_url; $("#cmpImgB").src = r.full_url;
@@ -491,8 +507,42 @@ async function loadCompare() {
     $("#cmpMetrics").innerHTML = `<span>${r.w}×${r.h} · ${LB.which === "full" ? "full-size file" : "Instagram copy"} · drag the handle to wipe</span>`;
   }
 }
+// The source comparison opens fitted to the window. "Actual pixels" (or a double-click on a spot)
+// switches to 1:1, where the stage never exceeds the image: a small capture sits centred with the
+// wipe across the picture, a large one is panned by dragging. `focus` is the image point (0..1)
+// to keep under the pointer when zooming in.
+function applyZoom(focus) {
+  const stage = $("#cmpStage"), img = $("#cmpImgA"), px = LB.cmpMode === "source" && LB.cmpZoom === "1:1";
+  stage.classList.toggle("one-to-one", px);
+  $("#cmpZoom").classList.toggle("on", px);
+  $("#cmpZoom").textContent = px ? "Fit to window" : "Actual pixels";
+  $("#cmpHint").textContent = px ? "Actual pixels. Drag the image to pan, the handle to wipe; double-click to fit."
+                                 : "Fitted to the window. Drag the handle to wipe; double-click a spot to see its actual pixels.";
+  if (!px || !img.naturalWidth) { stage.style.maxWidth = ""; stage.style.maxHeight = ""; stage.style.setProperty("--px", "0px"); stage.style.setProperty("--py", "0px"); return; }
+  stage.style.maxWidth = img.naturalWidth + "px"; stage.style.maxHeight = img.naturalHeight + "px";
+  const sw = stage.clientWidth, sh = stage.clientHeight, f = focus || { x: 0.5, y: 0.5, sx: sw / 2, sy: sh / 2 };
+  const dx = Math.min(0, Math.max(sw - img.naturalWidth, f.sx - f.x * img.naturalWidth));
+  const dy = Math.min(0, Math.max(sh - img.naturalHeight, f.sy - f.y * img.naturalHeight));
+  stage.style.setProperty("--px", dx + "px"); stage.style.setProperty("--py", dy + "px");
+}
+function toggleZoom(e) {
+  if (LB.cmpMode !== "source") return;
+  const stage = $("#cmpStage"), img = $("#cmpImgA"), rect = stage.getBoundingClientRect();
+  LB.cmpZoom = LB.cmpZoom === "1:1" ? "fit" : "1:1";
+  let focus = null;
+  if (e && LB.cmpZoom === "1:1" && img.naturalWidth) {
+    // where in the fitted picture was the click, as a fraction of the image
+    const s = Math.min(rect.width / img.naturalWidth, rect.height / img.naturalHeight);
+    const dw = img.naturalWidth * s, dh = img.naturalHeight * s, ox = (rect.width - dw) / 2, oy = (rect.height - dh) / 2;
+    const x = Math.max(0, Math.min(1, (e.clientX - rect.left - ox) / dw)), y = Math.max(0, Math.min(1, (e.clientY - rect.top - oy) / dh));
+    focus = { x, y, sx: e.clientX - rect.left, sy: e.clientY - rect.top };
+  }
+  applyZoom(focus);
+}
 function bindWipe() {
   const stage = $("#cmpStage"); let drag = null;
+  stage.addEventListener("dblclick", (e) => toggleZoom(e));
+  $("#cmpZoom").addEventListener("click", () => toggleZoom(null));
   stage.addEventListener("pointerdown", (e) => {
     const rect = stage.getBoundingClientRect();
     const onHandle = e.target.closest("#cmpHandle") || Math.abs(e.clientX - (rect.left + rect.width * parseFloat(getComputedStyle(stage).getPropertyValue("--wipe")) / 100)) < 14;

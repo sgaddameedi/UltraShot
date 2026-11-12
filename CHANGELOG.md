@@ -23,6 +23,11 @@ All notable changes to UltraShot are documented here. The format follows
   same tone map so the two differ only by what the encoder changed. The source comparison reports
   the PSNR of the base image against the source, the share of pixels off by more than two levels,
   and the mean, 99th-percentile and over-five-percent luminance error of the reconstructed HDR layer.
+- Tiles size themselves to the list: one capture gets a large tile, a few share the width in two or
+  three columns, and only a long list falls back to the dense grid. The grid refits whenever the
+  window or the panes change.
+- The source comparison opens fitted to the window; an "Actual pixels" button or a double-click on
+  the picture zooms to 1:1 at that spot, and the image can then be dragged to pan.
 - The layout now adapts to the window: panes shrink to the space available and the oldest one closes
   when the window cannot hold them all, the bottom bar wraps on narrow windows, and the viewer's
   controls, compare stage and details panel fit windows down to 960 by 640.
