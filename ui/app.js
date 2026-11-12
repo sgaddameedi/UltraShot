@@ -521,6 +521,7 @@ function closePane(id) {
   document.getElementById(id).classList.remove("open");
 }
 function fitPanes() {
+  applyPaneLayout();
   const avail = window.innerWidth - CONTENT_MIN;
   while (paneOrder.length > 1 && paneOrder.reduce((s, id) => s + paneMin(id), 0) > avail) {
     const oldest = paneOrder[0];
@@ -538,15 +539,17 @@ function applyPaneLayout() {
   const order = ((s.pane_order || []).filter((id) => PANE_IDS.includes(id)));
   for (const id of PANE_IDS) if (!order.includes(id)) order.push(id);
   order.forEach((id, i) => { document.getElementById(id).style.order = i + 1; });
+  // a remembered width never exceeds what the window can give the pane next to the file list
+  const cap = Math.max(PANES.inspector - 100, window.innerWidth - CONTENT_MIN - 40);
   for (const [id, w] of Object.entries(s.pane_widths || {})) {
     const pane = document.getElementById(id);
-    if (pane && w >= PANES[id] - 100) setPaneWidth(pane, w);
+    if (pane && w >= PANES[id] - 100) setPaneWidth(pane, Math.min(w, cap));
   }
 }
 // A pane's width is its flex basis, its minimum and its maximum at once, so a saved width holds
 // even when the window is full and the panes would otherwise shrink to their minimums.
 function setPaneWidth(pane, w) { for (const v of ["--w", "--min", "--wmax"]) pane.style.setProperty(v, w + "px"); }
-function paneMin(id) { return (S.settings && S.settings.pane_widths || {})[id] || PANES[id]; }
+function paneMin(id) { return Math.min((S.settings && S.settings.pane_widths || {})[id] || PANES[id], Math.max(PANES[id] - 100, window.innerWidth - CONTENT_MIN - 40)); }
 function bindPaneDrag() {
   const marker = el("div", "pane-marker"); document.body.appendChild(marker);
   const dropTarget = (x, self) => {

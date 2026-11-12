@@ -111,7 +111,7 @@ small { color: var(--muted); font-weight: 400; }
 
 /* ---------- main */
 #main { position: relative; z-index: 1; padding: 6px 20px 12px; overflow: auto; min-height: 0; }
-.gridbar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 8px; padding: 4px 0 12px;
+.gridbar { position: sticky; top: 0; z-index: 3; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 4px 0 12px;
   background: linear-gradient(var(--bg) 78%, transparent); }
 .gridbar .search { display: flex; align-items: center; gap: 8px; height: var(--h-ctl); padding: 0 12px; border-radius: var(--r-ctl); background: var(--panel); border: 1px solid var(--border); color: var(--muted); flex: 0 1 260px; min-width: 140px; box-sizing: border-box; }
 .gridbar .search:hover { border-color: var(--border2); }
@@ -182,7 +182,7 @@ small { color: var(--muted); font-weight: 400; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip {
   height: var(--h-ctl); padding: 0 14px; border-radius: var(--r-ctl); font-size: 13px; background: var(--panel); border: 1px solid var(--border);
-  backdrop-filter: blur(10px); display: flex; align-items: center; gap: 6px; transition: all .15s;
+  backdrop-filter: blur(10px); display: flex; align-items: center; gap: 6px; transition: all .15s; white-space: nowrap;
 }
 .chip:hover { border-color: var(--border2); background: var(--panel2); }
 .chip::after { content: "▾"; color: var(--muted); font-size: 11px; }

@@ -69,7 +69,8 @@ def main():
     U.THUMB_DIR = os.path.join(scratch, "thumbs")
     app = U.App()
     app.settings.update(watch=False, startup=False, explorer_menu=False, tray=False, theme="dark",
-                        ig_crop="4:5", exposure=0.0, knee=0.6, auto_sdr=False)
+                        ig_crop="4:5", exposure=0.0, knee=0.6, auto_sdr=False,
+                        pane_order=[], pane_widths={}, tile_sort="added_desc")
     U.save_settings = lambda s: None            # never persist the demo settings
     app.apply_integrations = lambda: None
     api = U.Api(app)
