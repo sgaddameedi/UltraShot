@@ -41,6 +41,37 @@ LUMA_2020 = np.array([0.2627, 0.6780, 0.0593], dtype=np.float32)
 LUMA_709 = np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
 
 
+def gainmap_metadata_triple(triple):
+    base, gm, meta = triple
+    return base, gm, gainmap_metadata(meta)
+
+
+def gainmap_metadata(meta):
+    """Gain-map metadata from imagecodecs, in one shape whatever the release.
+
+    imagecodecs 2026.10 returned per-channel lists under max_content_boost, min_content_boost
+    and gamma; 2026.11 returns single values under boostmax, boostmin and gainmap_gamma. Every
+    reader in this project goes through here and sees three-element lists and plain floats."""
+    def vec(*keys):
+        for k in keys:
+            if k in meta:
+                v = meta[k]
+                try:
+                    return [float(x) for x in v]
+                except TypeError:
+                    return [float(v)] * 3
+        return [1.0, 1.0, 1.0]
+    return {
+        "max_content_boost": vec("max_content_boost", "boostmax"),
+        "min_content_boost": vec("min_content_boost", "boostmin"),
+        "gamma": vec("gamma", "gainmap_gamma"),
+        "offset_sdr": vec("offset_sdr"), "offset_hdr": vec("offset_hdr"),
+        "hdr_capacity_min": float(meta.get("hdr_capacity_min", 1.0)),
+        "hdr_capacity_max": float(meta.get("hdr_capacity_max", 1.0)),
+        "use_base_cg": bool(meta.get("use_base_cg", False)),
+    }
+
+
 def insert_app1_xmp(jpeg, xmp):
     """Insert an APP1 XMP segment right after the SOI marker."""
     payload = XMP_NS + xmp.encode("utf-8")
@@ -92,9 +123,10 @@ def add_xmp_signaling(uhdr, gamut):
     """libultrahdr 2.x writes only ISO 21496-1 metadata. Older readers (Android 14,
     some apps) look for the XMP 'hdrgm' form, so add that too. The primary XMP is
     inserted before the MPF segment, which keeps the MPF offsets valid."""
-    base, gm, meta = ic.ultrahdr_decode_jpeg(uhdr)
-    gm = insert_app1_xmp(gm, gainmap_xmp(meta))
-    merged = ic.ultrahdr_encode_jpeg(base, gm, gamut=gamut, **meta)
+    base, gm, raw = ic.ultrahdr_decode_jpeg(uhdr)
+    gm = insert_app1_xmp(gm, gainmap_xmp(gainmap_metadata(raw)))
+    # the merge takes the metadata back in whatever shape this imagecodecs release uses
+    merged = ic.ultrahdr_encode_jpeg(base, gm, gamut=gamut, **raw)
     # the merge adds its own ISO segment to the gain map, so measure the final length
     _, gm_final, _ = ic.ultrahdr_decode_jpeg(merged)
     return insert_app1_xmp(merged, primary_xmp(len(gm_final)))
@@ -398,11 +430,12 @@ def encode_uhdr(nits, gamut, output, *, crop="", crop_x=50.0, crop_y=50.0, max_w
         # the HDR layer looks dim. Re-encode with the peak matched to the gain map so
         # it is applied in full on any display with enough headroom.
         _, _, meta = ic.ultrahdr_decode_jpeg(out)
+        meta = gainmap_metadata(meta)
         boost_nits = SDR_WHITE_NITS * float(max(meta["max_content_boost"]))
         if abs(boost_nits - peak_nits) > 0.02 * peak_nits:
             kw["nits"] = peak_nits = min(max(boost_nits, 250.0), 10000.0)
             out = ic.ultrahdr_encode(rgba, **kw)
-    _, _, meta = ic.ultrahdr_decode_jpeg(out)
+    _, _, meta = gainmap_metadata_triple(ic.ultrahdr_decode_jpeg(out))
     log(f"gain map: max boost {float(max(meta['max_content_boost'])):.2f}x "
         f"({SDR_WHITE_NITS * float(max(meta['max_content_boost'])):.0f} nits), "
         f"fully applied from {float(meta['hdr_capacity_max']):.2f}x display headroom "

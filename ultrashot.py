@@ -177,6 +177,7 @@ def inspect_ultrahdr(path):
         out["base"] = describe_jpeg(data)
         return out
     base, gm, meta = ic.ultrahdr_decode_jpeg(data)
+    meta = jxl2uhdr.gainmap_metadata(meta)
     out["base"] = describe_jpeg(base)
     out["gainmap"] = describe_jpeg(gm)
     cb_max = [float(v) for v in meta["max_content_boost"]]
@@ -186,8 +187,8 @@ def inspect_ultrahdr(path):
         "gamma": [float(v) for v in meta["gamma"]],
         "offset_sdr": [float(v) for v in meta["offset_sdr"]], "offset_hdr": [float(v) for v in meta["offset_hdr"]],
         "hdr_capacity_min": float(meta["hdr_capacity_min"]), "hdr_capacity_max": float(meta["hdr_capacity_max"]),
-        "multichannel": len(set(round(v, 4) for v in cb_max)) > 1 or len(set(round(v, 4) for v in cb_min)) > 1,
-        "use_base_colour_gamut": bool(meta.get("use_base_cg", False)),
+        "multichannel": out["gainmap"]["mode"] == "RGB",
+        "use_base_colour_gamut": bool(meta["use_base_cg"]),
         "peak_nits_declared": max(cb_max) * SDR_WHITE_NITS,
         "capacity_matches_boost": abs(float(meta["hdr_capacity_max"]) - max(cb_max)) <= 0.05 * max(cb_max),
     }

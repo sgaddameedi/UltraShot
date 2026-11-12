@@ -57,6 +57,9 @@ All notable changes to UltraShot are documented here. The format follows
 - Black-and-gold "Halo" identity, landing page on GitHub Pages, 4K HDR gallery.
 
 ### Fixed
+- imagecodecs 2026.11 renamed the gain-map metadata fields it returns (boostmax, boostmin,
+  gainmap_gamma) and made them scalars for single-channel maps; every reader now goes through one
+  normaliser, so the encoder, the file details and the tests work with either release.
 - The Convert button counted every card, including ones the watch folder had already converted; it now
   counts only files that still need converting and reads "All converted" when nothing is pending.
 

@@ -40,6 +40,7 @@ def test_capacity_matches_gain_map(tmp_path):
     gain map. The encoder must match the capacity to the real maximum boost."""
     data = E.encode_uhdr(ramp(800.0), ic.ULTRAHDR.CG.BT_709, str(tmp_path / "cap.jpg"), log=lambda m: None)
     _, _, meta = ic.ultrahdr_decode_jpeg(data)
+    meta = E.gainmap_metadata(meta)
     boost = float(max(meta["max_content_boost"]))
     cap = float(meta["hdr_capacity_max"])
     assert abs(cap - boost) / boost < 0.05
