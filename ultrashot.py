@@ -85,7 +85,7 @@ DEFAULTS = dict(
     tray=True, startup=True, explorer_menu=False,
     exposure=0.0, knee=0.6, auto_sdr=False, quality=100, peak_nits=0, limit_nits=0, transfer="auto",
     win_w=1280, win_h=840, win_x=-1, win_y=-1,
-    pane_order=[], pane_widths={},
+    pane_order=[], pane_widths={}, tile_sort="added_desc",
 )
 
 
@@ -383,7 +383,7 @@ class App:
 
     def public(self, f):
         return {k: f.get(k) for k in ("id", "name", "path", "size", "status", "stats", "thumb",
-                                      "outputs", "error", "added", "edit", "redo")}
+                                      "outputs", "error", "added", "edit", "redo", "mtime")}
 
     def state(self):
         # The page asks for the state once it has loaded, normally well after the previous session
@@ -405,10 +405,11 @@ class App:
                     continue
                 fid = uuid.uuid4().hex[:10]
                 try:
-                    size = os.path.getsize(p)
+                    st = os.stat(p)
+                    size, mtime = st.st_size, st.st_mtime
                 except OSError:
-                    size = 0
-                f = dict(id=fid, name=os.path.basename(p), path=p, size=size, status="queued",
+                    size, mtime = 0, 0.0
+                f = dict(id=fid, name=os.path.basename(p), path=p, size=size, mtime=mtime, status="queued",
                          stats=None, thumb=None, outputs=[], error=None, added=time.time(),
                          edit=dict(EDIT_DEFAULTS), redo=False)
                 self.files[fid] = f
@@ -468,7 +469,7 @@ class App:
                          size=st.st_size, status=status, stats=None if changed else e.get("stats"),
                          thumb=None, outputs=outputs, error=e.get("error") if status == "failed" else None,
                          added=float(e.get("added") or st.st_mtime), edit=self._edit_of(e.get("edit")),
-                         redo=bool(e.get("redo")))
+                         redo=bool(e.get("redo")), mtime=st.st_mtime)
                 key = self._thumb_key(path, st.st_mtime, st.st_size)
                 keep_keys.add(key)
                 if not changed and f["stats"]:

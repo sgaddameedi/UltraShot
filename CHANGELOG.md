@@ -23,6 +23,9 @@ All notable changes to UltraShot are documented here. The format follows
   same tone map so the two differ only by what the encoder changed. The source comparison reports
   the PSNR of the base image against the source, the share of pixels off by more than two levels,
   and the mean, 99th-percentile and over-five-percent luminance error of the reconstructed HDR layer.
+- A bar above the tiles with search, a filter (pending, converted, failed; JPEG XL or JPEG XR;
+  polished only) and a sort (added, capture date, name, brightest, largest). The Convert button and
+  the viewer follow what is shown, the sort is remembered, and Ctrl+F jumps to the search.
 - Convert again: a converted card can be converted a second time, replacing the files written
   before, from the inspector button or the card's menu, without turning on the global overwrite
   setting. A change of polish or framing marks the card for this automatically.

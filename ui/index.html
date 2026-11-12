@@ -49,7 +49,18 @@
       </div>
     </div>
   </section>
+  <div id="gridbar" class="gridbar hidden">
+    <label class="search" title="Search by file name (Ctrl+F)">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Search captures" spellcheck="false" autocomplete="off">
+    </label>
+    <span class="count" id="gridCount"></span>
+    <span class="spacer"></span>
+    <button class="chip" id="chipFilter">Filter</button>
+    <button class="chip" id="chipSort">Sort</button>
+  </div>
   <section id="grid" class="grid hidden"></section>
+  <div id="nomatch" class="nomatch hidden">No captures match. <button class="link" id="clearFilters">Clear the filters</button></div>
 </main>
 
 <footer class="bottombar">

@@ -16,6 +16,7 @@ const S = {
   inspTarget: "full",    // full | ig | heat | hdr
   edit: null,            // uncommitted polish of the selected card while a slider is being dragged
   frame: null,           // uncommitted Instagram framing while the picture is being dragged
+  view: { q: "", status: "all", fmt: "all", polished: false },   // what the grid shows, this launch only
   api: null,
 };
 let previewSeq = 0, previewTimer = null, previewBusy = false, previewAgain = false;
@@ -57,7 +58,7 @@ window.app = {
         const had = S.files.has(p.id);
         S.files.set(p.id, p);
         if (!had) S.order.push(p.id);
-        had ? updateCard(p) : renderGrid();
+        had ? (matches(p) === !!document.querySelector(`.card[data-id="${p.id}"]`) ? updateCard(p) : renderGrid()) : renderGrid();
         if (S.selected === p.id) renderInspectorInfo(p);
         updateProgress();
         updateConvertButton();
@@ -78,21 +79,69 @@ window.app = {
 /* ------------------------------------------------------------------ rendering */
 function renderAll() { renderGrid(); renderChips(); renderWatch(); renderInspectorControls(); updateProgress(); }
 
+// ---- sort and filter -------------------------------------------------------------------------
+const SORTS = {
+  added_desc: ["Newest added", (a, b) => (b.added || 0) - (a.added || 0)],
+  added_asc: ["Oldest added", (a, b) => (a.added || 0) - (b.added || 0)],
+  captured_desc: ["Capture date, newest", (a, b) => (b.mtime || 0) - (a.mtime || 0)],
+  captured_asc: ["Capture date, oldest", (a, b) => (a.mtime || 0) - (b.mtime || 0)],
+  name: ["Name", (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" })],
+  peak: ["Brightest first", (a, b) => ((b.stats && b.stats.peak) || 0) - ((a.stats && a.stats.peak) || 0)],
+  pixels: ["Largest first", (a, b) => ((b.stats ? b.stats.w * b.stats.h : 0) - (a.stats ? a.stats.w * a.stats.h : 0))],
+};
+const STATUS_FILTERS = { all: "Everything", pending: "Pending", done: "Converted", failed: "Failed" };
+const FMT_FILTERS = { all: "Any format", jxl: "JPEG XL · ReShade", jxr: "JPEG XR · NVIDIA / Game Bar" };
+function viewActive() { const v = S.view; return !!(v.q || v.status !== "all" || v.fmt !== "all" || v.polished); }
+function matches(f) {
+  const v = S.view;
+  if (v.q && !f.name.toLowerCase().includes(v.q)) return false;
+  if (v.status === "pending" && !["queued", "working"].includes(f.status)) return false;
+  if (v.status === "done" && !["done", "skipped"].includes(f.status)) return false;
+  if (v.status === "failed" && f.status !== "failed") return false;
+  if (v.fmt !== "all" && !f.path.toLowerCase().endsWith("." + v.fmt)) return false;
+  if (v.polished && !(f.edit && !polishIsDefault(polishOf(f)))) return false;
+  return true;
+}
+// The cards the grid shows, in the chosen order. Everything that walks the list uses this.
+function visibleIds() {
+  const key = SORTS[S.settings.tile_sort] ? S.settings.tile_sort : "added_desc";
+  const cmp = SORTS[key][1], newestFirst = key !== "added_asc" && key !== "captured_asc" && key !== "name";
+  // ties (a batch added in one go, equal peaks) fall back to the list order, newest first for the descending sorts
+  return S.order.map((id, i) => ({ f: S.files.get(id), i })).filter((x) => x.f && matches(x.f))
+    .sort((a, b) => cmp(a.f, b.f) || (newestFirst ? b.i - a.i : a.i - b.i)).map((x) => x.f.id);
+}
+function renderGridBar(shown) {
+  const v = S.view, total = S.order.length;
+  $("#gridbar").classList.toggle("hidden", total === 0);
+  $("#gridCount").textContent = viewActive() ? `${shown} of ${total}` : `${total} capture${total === 1 ? "" : "s"}`;
+  const parts = [];
+  if (v.status !== "all") parts.push(STATUS_FILTERS[v.status]);
+  if (v.fmt !== "all") parts.push(v.fmt.toUpperCase());
+  if (v.polished) parts.push("Polished");
+  $("#chipFilter").innerHTML = parts.length ? `Filter <b>${parts.join(" · ")}</b>` : "Filter";
+  $("#chipFilter").classList.toggle("active", parts.length > 0);
+  const key = SORTS[S.settings.tile_sort] ? S.settings.tile_sort : "added_desc";
+  $("#chipSort").innerHTML = `Sort <b>${SORTS[key][0]}</b>`;
+  $("#chipSort").classList.toggle("active", key !== "added_desc");
+  if ($("#q").value !== v.q) $("#q").value = v.q;
+}
 function renderGrid() {
   const grid = $("#grid"), empty = $("#empty");
-  const has = S.order.length > 0;
-  grid.classList.toggle("hidden", !has);
+  const has = S.order.length > 0, ids = visibleIds();
   empty.classList.toggle("hidden", has);
+  grid.classList.toggle("hidden", !has || ids.length === 0);
+  $("#nomatch").classList.toggle("hidden", !has || ids.length > 0);
   grid.innerHTML = "";
-  for (const id of S.order) grid.appendChild(cardFor(S.files.get(id)));
-  fitGrid();
+  for (const id of ids) grid.appendChild(cardFor(S.files.get(id)));
+  renderGridBar(ids.length);
+  fitGrid(ids.length);
   updateConvertButton();
 }
 
 // Tiles grow to use the space: one capture fills the view, a handful share it, and only a long
 // list falls back to the dense grid. Re-run whenever the list or the available area changes.
-function fitGrid() {
-  const grid = $("#grid"), main = $("#main"), n = S.order.length;
+function fitGrid(count) {
+  const grid = $("#grid"), main = $("#main"), n = count == null ? visibleIds().length : count;
   if (!n) return;
   const gap = 14, cs = getComputedStyle(main);
   const W = main.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
@@ -112,11 +161,11 @@ new ResizeObserver(() => fitGrid()).observe(document.getElementById("main"));
 
 function pendingIds() {
   const redo = !!S.settings.overwrite;
-  return S.order.filter((id) => { const f = S.files.get(id); return f && (f.status === "queued" || f.status === "failed" || (redo && f.status !== "working")); });
+  return (viewActive() ? visibleIds() : S.order).filter((id) => { const f = S.files.get(id); return f && (f.status === "queued" || f.status === "failed" || (redo && f.status !== "working")); });
 }
 
 function updateConvertButton() {
-  const b = $("#btnConvert"), pending = pendingIds().length, total = S.order.length;
+  const b = $("#btnConvert"), pending = pendingIds().length, total = viewActive() ? visibleIds().length : S.order.length;
   const working = S.order.some((id) => S.files.get(id)?.status === "working");
   b.disabled = pending === 0;
   if (!total) b.textContent = "Convert";
@@ -452,6 +501,7 @@ async function saveSetting(key, val) {
   if (key === "theme") applyTheme();
   renderChips(); renderWatch(); renderInspectorControls();
   if (["save_mode", "save_dir", "make_full", "make_ig", "auto_sdr", "suffix", "full_dir", "watch", "watch_subfolders"].includes(key)) renderSettings();
+  if (key === "tile_sort") renderGrid();
   if (["exposure", "knee", "auto_sdr", "ig_crop", "transfer", "ig_width"].includes(key)) requestPreview();
 }
 
@@ -561,8 +611,11 @@ function popover(anchor, items, at) {
     p.style.left = Math.max(8, Math.min(at.x, innerWidth - w - 8)) + "px";
     p.style.top = Math.max(8, Math.min(at.y, innerHeight - h - 8)) + "px";
   } else {
-    const r = anchor.getBoundingClientRect();
-    p.style.left = r.left + "px"; p.style.bottom = (innerHeight - r.top + 8) + "px"; p.style.top = "auto";
+    // anchored: open above a control in the lower half of the window, below one in the upper half
+    const r = anchor.getBoundingClientRect(), w = p.offsetWidth;
+    p.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + "px";
+    if (r.top > innerHeight / 2) { p.style.bottom = (innerHeight - r.top + 8) + "px"; p.style.top = "auto"; }
+    else { p.style.top = (r.bottom + 8) + "px"; p.style.bottom = "auto"; }
   }
   const close = (e) => { if (!p.contains(e.target) && e.target !== anchor) { p.classList.add("hidden"); document.removeEventListener("mousedown", close); } };
   setTimeout(() => document.addEventListener("mousedown", close), 0);
@@ -587,7 +640,7 @@ function appendLog(t, msg) {
 /* ------------------------------------------------------------------ result viewer */
 const LB = { ids: [], i: 0, which: "ig", path: null, seq: 0, info: false, report: "", compare: false, cmpMode: "sdrhdr", cmpZoom: "fit", cmpSeq: 0 };
 
-function convertedIds() { return S.order.filter((id) => { const f = S.files.get(id); return f && f.outputs && f.outputs.length; }); }
+function convertedIds() { return visibleIds().filter((id) => { const f = S.files.get(id); return f && f.outputs && f.outputs.length; }); }
 
 function openResult(id) {
   const f = S.files.get(id);
@@ -853,6 +906,26 @@ function bindUI() {
   live("#rKnee", "knee", (v) => Number(v).toFixed(2), "#vKnee");
   bindFraming();
   bindPaneDrag();
+  // sort and filter
+  let qTimer;
+  $("#q").addEventListener("input", () => { clearTimeout(qTimer); qTimer = setTimeout(() => { S.view.q = $("#q").value.trim().toLowerCase(); renderGrid(); }, 120); });
+  $("#q").addEventListener("keydown", (e) => { if (e.key === "Escape") { $("#q").value = ""; S.view.q = ""; renderGrid(); $("#q").blur(); } });
+  $("#clearFilters").addEventListener("click", () => { S.view = { q: "", status: "all", fmt: "all", polished: false }; renderGrid(); });
+  $("#chipFilter").addEventListener("click", (e) => {
+    const v = S.view, set = (patch) => { Object.assign(S.view, patch); renderGrid(); };
+    popover(e.currentTarget, [
+      ...Object.entries(STATUS_FILTERS).map(([k, label]) => ({ label, checked: v.status === k, run: () => set({ status: k }) })),
+      "-",
+      ...Object.entries(FMT_FILTERS).map(([k, label]) => ({ label, checked: v.fmt === k, run: () => set({ fmt: k }) })),
+      "-",
+      { label: "Polished only", checked: v.polished, run: () => set({ polished: !v.polished }) },
+      ...(viewActive() ? ["-", { label: "Clear filters", run: () => { S.view = { q: "", status: "all", fmt: "all", polished: false }; renderGrid(); } }] : []),
+    ]);
+  });
+  $("#chipSort").addEventListener("click", (e) => {
+    const cur = SORTS[S.settings.tile_sort] ? S.settings.tile_sort : "added_desc";
+    popover(e.currentTarget, Object.entries(SORTS).map(([k, [label]]) => ({ label, checked: cur === k, run: () => saveSetting("tile_sort", k) })));
+  });
   $("#lookReset").addEventListener("click", async () => {
     S.settings = await S.api.set_settings({ exposure: 0, knee: 0.6 });
     renderChips(); renderInspectorControls(); requestPreview();
@@ -905,6 +978,7 @@ function bindUI() {
     if (e.key === "Enter" && !e.ctrlKey && S.selected && document.activeElement.tagName !== "INPUT" && !lbOpen) openResult(S.selected);
     if (e.key === "Delete" && S.selected && document.activeElement.tagName !== "INPUT") S.api.remove(S.selected);
     if (e.ctrlKey && e.key.toLowerCase() === "o") { e.preventDefault(); S.api.pick_files(); }
+    if (e.ctrlKey && e.key.toLowerCase() === "f" && S.order.length) { e.preventDefault(); $("#q").focus(); $("#q").select(); }
     if (e.ctrlKey && e.key === "Enter") convertAll();
   });
   document.addEventListener("contextmenu", (e) => { if (e.target.tagName !== "INPUT") e.preventDefault(); });

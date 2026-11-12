@@ -203,7 +203,9 @@ convenient way to check a result without involving a phone.
 Drop `.jxl` or `.jxr` files, or folders containing them, anywhere on the window. Each capture appears
 as a card showing a thumbnail of its SDR rendering, its resolution and source format, the brightest
 value in the frame in nits, and a short classification of how much of the frame exceeds SDR white.
-*Convert* processes every card in turn; *Convert selected* in the inspector processes one. Captures
+A bar above the tiles searches by name, filters by state, capture format or polish, and sorts by
+when a capture was added or taken, by name, by peak brightness or by size; the Convert button and
+the viewer follow what is shown. *Convert* processes every card in turn; *Convert selected* in the inspector processes one. Captures
 whose outputs already exist are skipped unless *Overwrite existing outputs* is enabled, so it is safe
 to drop an entire folder repeatedly. Double-clicking a finished card opens the result: in your
 default viewer when it is the only one, or in the built-in viewer that steps through every converted
