@@ -18,6 +18,9 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 import webview
 
+# keep the window in SDR composition while capturing (see SDR_CAPTURE in ultrashot.py)
+os.environ["ULTRASHOT_SDR_CAPTURE"] = "1"
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "tools"))
@@ -30,8 +33,9 @@ OUT = os.path.join(ROOT, "packaging", "msix", "store-listing", "slides")
 W, H = 1920, 1080
 GALLERY = os.path.join(ROOT, "examples", "gallery")
 # order matters: the first becomes the hero of the viewer slides
-PICKS = ["phantom-blade-zero-lake-sunset", "phantom-blade-zero-golden-field", "phantom-blade-zero-lion-dance",
-         "phantom-blade-zero-sunset-figures", "crimson-desert-red-sunset", "phantom-blade-zero-lantern-stairs"]
+# colourful but not blown out: the sunsets put a fifth of the frame above SDR white and clip in SDR
+PICKS = ["phantom-blade-zero-lion-dance", "phantom-blade-zero-lantern-stairs", "phantom-blade-zero-village-dusk",
+         "phantom-blade-zero-mountain-village", "crimson-desert-storm-sky", "crimson-desert-red-sunset"]
 
 SLIDES = [  # file, headline, subline
     ("01-drop", "Drop. Convert. Share in HDR.", "ReShade .jxl and NVIDIA / Game Bar .jxr captures become Ultra HDR JPEGs that stay HDR on Instagram, phones and the web."),
@@ -98,7 +102,14 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     scratch = os.path.join(tempfile.gettempdir(), "ultrashot-store-slides")
     os.makedirs(scratch, exist_ok=True)
-    sources = make_sources(os.path.join(scratch))
+    # a clean list every run: no remembered cards, no thumbnails, no sources from an earlier pick
+    for name in ("session.json", "thumbs"):
+        path = os.path.join(scratch, name)
+        shutil.rmtree(path, ignore_errors=True) if os.path.isdir(path) else (os.remove(path) if os.path.exists(path) else None)
+    for name in os.listdir(scratch):
+        if name.endswith(".jxl") and name[:-4] not in PICKS:
+            os.remove(os.path.join(scratch, name))
+    sources = make_sources(scratch)
     shots = os.path.join(scratch, "shots"); shutil.rmtree(shots, ignore_errors=True); os.makedirs(shots)
     outdir = os.path.join(scratch, "out"); shutil.rmtree(outdir, ignore_errors=True); os.makedirs(outdir)
     ctypes.windll.shcore.SetProcessDpiAwareness(1)

@@ -113,13 +113,20 @@ scales down for smaller placements. Slots the dashboard does not show can be ign
 - Short title: `UltraShot`
 - Sort title: `UltraShot`
 - Voice title: `Ultra Shot`
-- Short description. The Store shows only the first line or so of this field in search results
-  and on the product tile, so the first sentence must stand on its own and be short. Use:
+- Short description. The Store shows only the first line or two of this field on tiles and in search
+  results, so the core function must come first and each version must read as a complete thought.
+  Primary, 213 characters:
+
+  > Converts HDR game screenshots from ReShade, the NVIDIA App and Game Bar into Ultra HDR JPEGs: ordinary JPEGs with a gain map that stay HDR on Instagram, Google Photos, Chrome and phones, and look right on any screen.
+
+  If that is clipped where you look at it, 162 characters:
+
+  > Converts ReShade and NVIDIA / Game Bar HDR screenshots into Ultra HDR JPEGs that stay HDR on Instagram, Google Photos, Chrome and phones, and look right everywhere.
+
+  And for a single tile line, 95 characters:
 
   > Turn HDR game screenshots into Ultra HDR JPEGs that stay HDR on Instagram, phones and the web.
 
-  That is 95 characters. If the field is still clipped where you look at it, the 60-character form
-  is: `HDR game screenshots, shared in HDR on Instagram and phones.`
 - Search terms (up to seven, each under 30 characters): `HDR screenshot`, `Ultra HDR`, `gain map`, `Instagram HDR`, `ReShade JXL`, `JXR converter`, `HDR to JPEG`
 - Copyright and trademark info: `© 2026 Sharath Gaddameedi. Released under the MIT licence.`
 - Additional licence terms: `MIT licence: https://github.com/sgaddameedi/UltraShot/blob/main/LICENSE`

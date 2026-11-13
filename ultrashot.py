@@ -54,6 +54,9 @@ SETTINGS_FILE = os.path.join(SETTINGS_DIR, "settings.json")
 SESSION_FILE = os.path.join(SETTINGS_DIR, "session.json")        # the file list, restored at launch
 THUMB_DIR = os.path.join(os.environ.get("LOCALAPPDATA") or APPDATA, APP_ID, "thumbs")
 SESSION_MAX = 500                                                # cards kept between launches
+# Screenshot tooling only: serve the SDR base to the viewer so the window never composites in HDR,
+# which PrintWindow would capture clipped and over-bright. Never set for real use.
+SDR_CAPTURE = os.environ.get("ULTRASHOT_SDR_CAPTURE") == "1"
 # Everything a card remembers about how to make its outputs: the polish and the Instagram framing.
 EDIT_DEFAULTS = dict(jxl2uhdr.GRADE_DEFAULTS, crop_x=50, crop_y=50)
 OLD_SETTINGS_FILE = os.path.join(APPDATA, "JXL Ultra HDR", "settings.json")
@@ -728,6 +731,8 @@ class App:
             os.remove(tmp)
         except OSError:
             pass
+        if SDR_CAPTURE:
+            data = ic.ultrahdr_decode_jpeg(data)[0]
         return {"url": "data:image/jpeg;base64," + base64.b64encode(data).decode("ascii"),
                 "w": nits.shape[1], "h": nits.shape[0], "stats": stats}
 
@@ -1161,7 +1166,7 @@ class Api:
         base, _, _ = ic.ultrahdr_decode_jpeg(data)
         im = Image.open(io.BytesIO(base))
         b64 = lambda b: "data:image/jpeg;base64," + base64.b64encode(b).decode("ascii")
-        return {"base_url": b64(base), "full_url": b64(data), "w": im.width, "h": im.height, "path": path}
+        return {"base_url": b64(base), "full_url": b64(base if SDR_CAPTURE else data), "w": im.width, "h": im.height, "path": path}
 
     def compare_source(self, fid):
         """Source rendered through the same tone map next to the full-size output's base image, at
@@ -1217,6 +1222,8 @@ class Api:
         pick = next((o for o in outs if os.path.basename(os.path.dirname(o)).lower() == want), outs[0])
         with open(pick, "rb") as fh:
             data = fh.read()
+        if SDR_CAPTURE:
+            data = ic.ultrahdr_decode_jpeg(data)[0]
         kind = "full" if os.path.basename(os.path.dirname(pick)).lower() == s["full_dir"].lower() else "ig"
         return {"url": "data:image/jpeg;base64," + base64.b64encode(data).decode("ascii"),
                 "path": pick, "size": len(data), "which": kind,
