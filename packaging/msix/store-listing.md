@@ -87,6 +87,18 @@ the headline is in the picture, or carry the short line given here:
 7. `07-highlights.png`: The highlights map shows where the HDR lives
 8. `08-settings.png`: Watch folder, tray, start with Windows and the output settings
 
+### Trailer
+
+`python tools/store_trailer.py` (after `tools/store_slides.py`) writes `trailer.mp4` and
+`trailer-thumbnail.png` into `packaging\msix\store-listing\`. The trailer is 45 seconds of 1080p
+H.264 at 30 frames per second with a silent stereo track, which is what Partner Center accepts,
+and it is built from the real app: the grid filling as captures arrive, the viewer and compare
+slides, the Polish sliders moving with the preview following, the Instagram frame being dragged,
+the file details and the highlights map, and an end card with the website. Under *Trailers and
+additional assets* upload the video, give it the title `UltraShot in 45 seconds`, and upload the
+thumbnail. The 16:9 super hero art above must be in place for the trailer to show at the top of
+the listing.
+
 ### Store logos and additional art
 
 All from `packaging\msix\store-listing\`, one file for every slot Partner Center offers. The three

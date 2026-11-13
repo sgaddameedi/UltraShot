@@ -72,7 +72,19 @@ def rounded(img, r):
 
 
 def compose(shot_path, headline, subline, out):
-    canvas = make_logo.aurora(W, H).convert("RGBA")
+    compose_image(Image.open(shot_path).convert("RGB"), headline, subline).save(out, optimize=True)
+    print("slide", os.path.basename(out))
+
+
+_AURORA = None
+
+
+def compose_image(shot, headline, subline):
+    """One slide as an image: headline, subline and the app capture on the aurora background."""
+    global _AURORA
+    if _AURORA is None:
+        _AURORA = make_logo.aurora(W, H).convert("RGBA")
+    canvas = _AURORA.copy()
     d = ImageDraw.Draw(canvas)
     f1 = make_logo.font(make_logo.FONT_BOLD, 58)
     f2 = make_logo.font(make_logo.FONT_REG, 25)
@@ -85,7 +97,6 @@ def compose(shot_path, headline, subline, out):
         else: cur = t
     lines.append(cur)
     for i, ln in enumerate(lines): d.text((112, 150 + i * 34), ln, font=f2, fill=(190, 184, 172))
-    shot = Image.open(shot_path).convert("RGB")
     sw = 1640; sh = round(shot.height * sw / shot.width)
     shot = rounded(shot.resize((sw, sh), Image.LANCZOS), 20)
     shadow = Image.new("RGBA", (sw + 160, sh + 160), (0, 0, 0, 0))
@@ -94,8 +105,7 @@ def compose(shot_path, headline, subline, out):
     x, y = 140, 250
     canvas.alpha_composite(shadow, (x - 80, y - 80))
     canvas.alpha_composite(shot, (x, y))
-    canvas.convert("RGB").save(out, optimize=True)
-    print("slide", os.path.basename(out))
+    return canvas.convert("RGB")
 
 
 def main():
