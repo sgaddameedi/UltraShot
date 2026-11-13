@@ -51,7 +51,7 @@ Supported input: JPEG XL (.jxl) from ReShade, including scRGB float and PQ 16-bi
 
 ### What's new in this version
 
-UltraShot 1.1 adds JPEG XR input for NVIDIA App and Game Bar captures, a watch folder that can include subfolders, start with Windows, a result viewer that shows converted files in HDR with a side-by-side compare and a file-details panel, an optional limit on HDR peak brightness for captures brighter than your display, and a file list that survives restarts. Settings and the log open as panes beside the file list.
+UltraShot 1.2 adds a Polish section with warmth, contrast, vibrance and shadow sliders and a watermark, applied in a way that leaves the HDR highlights exactly as captured, with an HDR preview that shows the finished picture in real HDR while you adjust. Instagram framing now works the way Instagram's own editor does: drag the picture inside the crop window, per capture. The viewer gains a compare mode that wipes between the SDR base and the HDR rendering or between the capture and the finished file at actual pixels, with error figures, and a file details panel that reads every tag back from the finished JPEG. The list survives restarts, tiles size themselves to the list, there is search, filter and sort, a right-click menu on every card, Convert again for replacing earlier outputs, and panes that can be rearranged and resized.
 
 ### Product features
 

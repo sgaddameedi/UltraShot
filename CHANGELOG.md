@@ -6,6 +6,10 @@ All notable changes to UltraShot are documented here. The format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.2.0] - 2026-11-12
+
 ### Added
 - In-app result viewer: double-click a converted card to open it in the default viewer (single result)
   or step through every converted capture in a viewer rendered by WebView2, which shows the gain-map
