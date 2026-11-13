@@ -90,12 +90,13 @@ the headline is in the picture, or carry the short line given here:
 ### Trailer
 
 `python tools/store_trailer.py` (after `tools/store_slides.py`) writes `trailer.mp4` and
-`trailer-thumbnail.png` into `packaging\msix\store-listing\`. The trailer is 45 seconds of 1080p
+`trailer-thumbnail.png` into `packaging\msix\store-listing\`. The trailer is 57 seconds of 1080p
 H.264 at 30 frames per second with a silent stereo track, which is what Partner Center accepts,
-and it is built from the real app: the grid filling as captures arrive, the viewer and compare
-slides, the Polish sliders moving with the preview following, the Instagram frame being dragged,
-the file details and the highlights map, and an end card with the website. Under *Trailers and
-additional assets* upload the video, give it the title `UltraShot in 45 seconds`, and upload the
+and it is built from the real app recorded at twice the resolution, with a camera that eases into
+the inspector while the Polish sliders move, into the crop window while the Instagram frame is
+dragged, across the grid while every capture converts, into the compare metrics, the file details
+and the settings page, and an end card with the website. Under *Trailers and
+additional assets* upload the video, give it the title `UltraShot in a minute`, and upload the
 thumbnail. The 16:9 super hero art above must be in place for the trailer to show at the top of
 the listing.
 
