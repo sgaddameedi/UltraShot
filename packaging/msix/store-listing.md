@@ -72,16 +72,20 @@ One per line, each under 200 characters:
 
 ### Screenshots
 
-Desktop, 1920×1080, from `packaging\msix\store-listing\screenshots\`. Upload in this order with these captions:
+Desktop, 1920×1080, from `packaging\msix\store-listing\slides\`, produced by
+`python tools/store_slides.py`. Each slide shows one feature large on a frameless capture of the
+app running on the 4K gallery pictures, with its own headline, so the Store page reads as a tour
+rather than a row of small windows. Upload in this order; the caption field can stay empty since
+the headline is in the picture, or carry the short line given here:
 
-1. `main.png`: Drop HDR captures on the window, or let the watch folder pick them up as you play
-2. `inspector.png`: A live preview of the SDR base image with exposure and highlight-knee controls
-3. `compare.png`: Compare the original capture with the finished file at actual pixels, with measured error
-4. `highlights-map.png`: The highlights map shows where the HDR lives: orange above SDR white, pink above 1000 nits
-5. `instagram-crop.png`: An Instagram copy with a 4:5 crop and position controls, carrying the full gain map
-6. `file-details.png`: Every tag in the finished JPEG, read back from disk, down to the gain-map metadata
-7. `panes-side-by-side.png`: Inspector and settings open side by side next to the file list
-8. `settings.png`: Output, saving, watch folder and fine-tuning settings
+1. `01-drop.png`: Drop ReShade and NVIDIA / Game Bar captures, or let the watch folder pick them up
+2. `02-viewer.png`: The built-in viewer shows the finished files in real HDR on an HDR display
+3. `03-compare.png`: Wipe between what SDR screens see and what HDR screens see
+4. `04-polish.png`: Warmth, contrast, vibrance, shadows and a watermark, with the HDR left intact
+5. `05-frame.png`: Frame the Instagram copy by dragging the picture inside the crop window
+6. `06-details.png`: Every tag in the finished JPEG, read back from the file
+7. `07-highlights.png`: The highlights map shows where the HDR lives
+8. `08-settings.png`: Watch folder, tray, start with Windows and the output settings
 
 ### Store logos and additional art
 
@@ -109,7 +113,13 @@ scales down for smaller placements. Slots the dashboard does not show can be ign
 - Short title: `UltraShot`
 - Sort title: `UltraShot`
 - Voice title: `Ultra Shot`
-- Short description (under 500 characters): HDR game screenshots, shared in HDR. UltraShot converts ReShade and NVIDIA / Game Bar captures into Ultra HDR JPEGs that stay HDR on Instagram, Threads, Google Photos, Chrome and Android phones, and look right everywhere else. Free, open source, fully offline.
+- Short description. The Store shows only the first line or so of this field in search results
+  and on the product tile, so the first sentence must stand on its own and be short. Use:
+
+  > Turn HDR game screenshots into Ultra HDR JPEGs that stay HDR on Instagram, phones and the web.
+
+  That is 95 characters. If the field is still clipped where you look at it, the 60-character form
+  is: `HDR game screenshots, shared in HDR on Instagram and phones.`
 - Search terms (up to seven, each under 30 characters): `HDR screenshot`, `Ultra HDR`, `gain map`, `Instagram HDR`, `ReShade JXL`, `JXR converter`, `HDR to JPEG`
 - Copyright and trademark info: `© 2026 Sharath Gaddameedi. Released under the MIT licence.`
 - Additional licence terms: `MIT licence: https://github.com/sgaddameedi/UltraShot/blob/main/LICENSE`
