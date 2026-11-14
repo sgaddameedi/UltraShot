@@ -37,6 +37,7 @@ XMP_NS = b"http://ns.adobe.com/xap/1.0/\x00"
 M_2020_TO_709 = np.array([[1.6605, -0.5876, -0.0728],
                           [-0.1246, 1.1329, -0.0083],
                           [-0.0182, -0.1006, 1.1187]], dtype=np.float32)
+M_709_TO_2020 = np.linalg.inv(M_2020_TO_709).astype(np.float32)
 LUMA_2020 = np.array([0.2627, 0.6780, 0.0593], dtype=np.float32)
 LUMA_709 = np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
 
@@ -257,9 +258,18 @@ def load_hdr(path, transfer="auto", log=print, info=None):
             raise ValueError(f"{rgb.dtype} input looks like an SDR screenshot, not HDR. "
                              "Make sure the game ran in HDR and ReShade saved an HDR JXL.")
 
+    wide = False
     if transfer == "scrgb":
         nits = rgb.astype(np.float32) * SCRGB_WHITE_NITS
         gamut = ic.ULTRAHDR.CG.BT_709
+        # scRGB keeps colours outside BT.709 as negative channel values (an HDR10 game captured
+        # through OBS or a capture card is BT.2020 content in an scRGB container). Clamping those
+        # to zero would pull them to the BT.709 boundary, so move such captures to BT.2020 first,
+        # where they are ordinary positive values, and encode with the wide gamut.
+        if float(nits.min()) < -0.5:
+            nits = (nits @ M_709_TO_2020.T).astype(np.float32)
+            gamut = ic.ULTRAHDR.CG.BT_2100
+            wide = True
     else:
         if rgb.dtype == np.uint16:
             codes = rgb.astype(np.float32) / 65535.0
@@ -272,14 +282,16 @@ def load_hdr(path, transfer="auto", log=print, info=None):
 
     nits = np.maximum(nits, 0.0)  # HDR layer: never exposure-adjusted
     log(f"{path}: {rgb.shape[1]}x{rgb.shape[0]} {rgb.dtype} as {transfer}; "
-        f"peak {nits.max():.0f} nits, mean {nits.mean():.1f} nits")
+        f"peak {nits.max():.0f} nits, mean {nits.mean():.1f} nits"
+        + ("; colours beyond BT.709 present, kept by encoding in BT.2020" if wide else ""))
     if info is not None:
         bits = rgb.dtype.itemsize * 8
         info.update(format=fmt, dtype=str(rgb.dtype), bits=bits, channels=img.shape[2],
                     pixel_type=(f"{bits}-bit float, linear scRGB (1.0 = 80 nits)" if transfer == "scrgb"
                                 else f"{bits}-bit integer, {transfer.upper()} code values"),
                     transfer={"scrgb": "linear (scRGB)", "pq": "PQ (SMPTE ST 2084)", "hlg": "HLG (BT.2100)"}[transfer],
-                    primaries="BT.709 / sRGB" if gamut == ic.ULTRAHDR.CG.BT_709 else "BT.2020 / BT.2100")
+                    primaries=("scRGB (BT.709 basis), colours beyond BT.709 kept in BT.2020" if wide
+                               else "BT.709 / sRGB" if gamut == ic.ULTRAHDR.CG.BT_709 else "BT.2020 / BT.2100"))
     return nits, gamut
 
 

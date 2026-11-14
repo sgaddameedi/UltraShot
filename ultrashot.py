@@ -648,7 +648,8 @@ class App:
                      p99=float(np.percentile(lum, 99.5)),
                      above_sdr=float((lum > jxl2uhdr.SDR_WHITE_NITS).mean() * 100.0),
                      above_1k=float((lum > 1000.0).mean() * 100.0),
-                     transfer=("scRGB (BT.709)" if gamut == jxl2uhdr.ic.ULTRAHDR.CG.BT_709 else "PQ (BT.2100)")
+                     transfer={"linear (scRGB)": "scRGB", "PQ (SMPTE ST 2084)": "PQ", "HLG (BT.2100)": "HLG"}.get(src.get("transfer"), "HDR")
+                     + (" (BT.709)" if gamut == jxl2uhdr.ic.ULTRAHDR.CG.BT_709 else " (BT.2020)")
                      + (" · JXR" if path.lower().endswith(".jxr") else " · JXL"),
                      source=src)
         small = jxl2uhdr.resize_linear(nits, PREVIEW_W)

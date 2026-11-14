@@ -284,8 +284,12 @@ subfolder for each game. Notifications announce finished conversions while the w
 | ReShade 6.x | `.jxl` | Float16 scRGB (BT.709 primaries, 1.0 = 80 nits) for scRGB games; 16-bit PQ or HLG (BT.2100) for HDR10 games | Lossless, and the best source available. Select JPEG XL as the screenshot format in ReShade's settings. |
 | NVIDIA App, GeForce Experience | `.jxr` | Float scRGB | Saved to `Videos\NVIDIA\<game>`; enable *Include subfolders*. |
 | Windows Game Bar | `.jxr` | Float scRGB | Saved to `Videos\Captures`, the default watch folder. |
+| OBS, with a console or a capture card | `.jxr` | Float scRGB | OBS's HDR screenshot. An HDR10 console signal arrives as BT.2020 content inside the scRGB container; its colours beyond BT.709 are kept. |
 
-Float input is interpreted as scRGB and 16-bit input as PQ. Games that output HLG are rare; for them,
+Float input is interpreted as scRGB and 16-bit input as PQ. scRGB is built on the BT.709 primaries and
+stores wider colours as negative channel values, which is why a console capture through OBS reports
+BT.709 as its basis; when such values are present the converter moves the picture to BT.2020 before
+encoding, so nothing outside BT.709 is lost, and the file details say so. Games that output HLG are rare; for them,
 *Input transfer* in Settings can be set to HLG.
 
 ## How the gain-map conversion works
