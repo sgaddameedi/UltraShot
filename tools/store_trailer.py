@@ -1,4 +1,7 @@
-"""Store trailer: a short silent 4K MP4 for the Microsoft Store listing, plus its thumbnail.
+"""Store trailer: a short silent MP4 for the Microsoft Store listing, plus its thumbnail.
+
+The Store requires exactly 1920x1080, so the trailer is rendered at 3840x2160 for sharpness and
+then downscaled with a Lanczos filter at a high bitrate; both files are kept.
 
 The app runs frameless at 3840x2160 with WebView2 forced to a device scale of 2, so every capture
 is the 1920x1080 interface at twice the resolution. A virtual camera then moves over the composed
@@ -367,8 +370,15 @@ def main():
     reel.fade_to(closer, 0.6); reel.hold(closer, 2.6); reel.fade_to(black, 0.8)
     print(reel.n, "frames,", round(reel.n / FPS, 1), "s; encoding")
     reel.finish()
-    reel._render(vw[0], FULL).save(os.path.join(OUT_DIR, "trailer-thumbnail.png"), optimize=True)
-    print("wrote", out, f"({os.path.getsize(out) / 1e6:.1f} MB) and trailer-thumbnail.png")
+    master = os.path.join(OUT_DIR, "trailer-4k-master.mp4")
+    if os.path.exists(master): os.remove(master)
+    os.replace(out, master)
+    # Partner Center accepts trailers at 1920x1080 only
+    subprocess.run([ffmpeg(), "-y", "-loglevel", "error", "-i", master, "-vf", "scale=1920:1080:flags=lanczos",
+                    "-c:v", "libx264", "-preset", "slow", "-crf", "16", "-pix_fmt", "yuv420p", "-profile:v", "high", "-level", "4.1",
+                    "-c:a", "copy", "-movflags", "+faststart", out], check=True)
+    reel._render(vw[0], FULL).resize((1920, 1080), Image.LANCZOS).save(os.path.join(OUT_DIR, "trailer-thumbnail.png"), optimize=True)
+    print("wrote", out, f"({os.path.getsize(out) / 1e6:.1f} MB, 1920x1080), trailer-4k-master.mp4 and trailer-thumbnail.png")
 
 
 if __name__ == "__main__":

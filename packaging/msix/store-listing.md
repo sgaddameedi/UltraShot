@@ -90,8 +90,9 @@ the headline is in the picture, or carry the short line given here:
 ### Trailer
 
 `python tools/store_trailer.py` (after `tools/store_slides.py`) writes `trailer.mp4` and
-`trailer-thumbnail.png` into `packaging\msix\store-listing\`. The trailer is 57 seconds of 3840×2160
-H.264 at 30 frames per second with a silent stereo track, which is what Partner Center accepts,
+`trailer-thumbnail.png` into `packaging\msix\store-listing\`. Partner Center accepts trailers at exactly 1920×1080, so `trailer.mp4` is 57 seconds of 1080p
+H.264 at 30 frames per second with a silent stereo track, downscaled with a Lanczos filter from the
+4K render kept beside it as `trailer-4k-master.mp4`, which is what Partner Center accepts,
 and it is built from the real app recorded with the interface at a device scale of 2, so the 4K
 frames are native detail, with a camera that eases into
 the inspector while the Polish sliders move, into the crop window while the Instagram frame is
