@@ -156,6 +156,25 @@ function fitGrid(count) {
   tile = Math.max(minTile, Math.min(tile, 720, byHeight));
   grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, ${Math.floor(tile)}px))`;
   grid.style.justifyContent = "start";
+  reportTileSize(tile);
+}
+// Thumbnails are rendered for the screen they are shown on: the tile's CSS width times the device
+// pixel ratio, so a 4K or high-density window gets sharp tiles instead of a stretched 520 px image.
+let tileReportTimer = null, tileReported = 0;
+function reportTileSize(tileCss) {
+  const want = Math.round(tileCss * (window.devicePixelRatio || 1));
+  if (want <= tileReported + 63) return;
+  clearTimeout(tileReportTimer);
+  tileReportTimer = setTimeout(async () => { tileReported = Math.max(tileReported, want); try { await S.api.set_thumb_width(want); } catch (e) {} }, 300);
+}
+// the preview is rendered at the inspector's real pixel width as well
+function previewWidth() {
+  // while the inspector is still sliding open its box is narrower than it will be, so size the
+  // preview from the pane's settled width rather than the animated one
+  const box = $("#inspPreview"), pane = $("#inspector");
+  const settled = (parseFloat(getComputedStyle(pane).getPropertyValue("--w")) || 440) - 32;
+  const css = Math.max(box.clientWidth || 0, settled);
+  return Math.max(320, Math.min(2048, Math.round(css * (window.devicePixelRatio || 1))));
 }
 new ResizeObserver(() => fitGrid()).observe(document.getElementById("main"));
 
@@ -364,15 +383,15 @@ async function doPreview() {
   if (previewBusy) { previewAgain = true; return; }
   previewBusy = true;
   const seq = ++previewSeq, s = S.settings, id = S.selected;
-  const opts = { exposure: s.exposure, knee: s.knee, auto_sdr: s.auto_sdr, heat: S.inspTarget === "heat", width: 1100, edit: S.edit || undefined };
+  const opts = { exposure: s.exposure, knee: s.knee, auto_sdr: s.auto_sdr, heat: S.inspTarget === "heat", width: previewWidth(), edit: S.edit || undefined };
   // Instagram framing happens in the page: the whole picture is rendered once and the crop window
   // is laid over it, so dragging never waits for a new render.
   const framing = S.inspTarget === "ig" && (s.ig_crop || "none") !== "none";
-  if (S.inspTarget === "ig") Object.assign(opts, { crop: "none", width: Math.min(1100, Math.max(s.ig_width, 720)) });
+  if (S.inspTarget === "ig") Object.assign(opts, { crop: "none", width: Math.max(previewWidth(), Math.min(2048, s.ig_width)) });
   applyFraming(framing);
   $("#inspLoading").style.display = "";
   try {
-    const r = S.inspTarget === "hdr" ? await S.api.hdr_preview(id, S.edit || null) : await S.api.preview(id, opts);
+    const r = S.inspTarget === "hdr" ? await S.api.hdr_preview(id, S.edit || null, previewWidth()) : await S.api.preview(id, opts);
     if (seq === previewSeq && r && r.url) {
       $("#inspImg").src = r.url;
       $("#inspBadge").textContent = S.inspTarget === "heat" ? "orange > 203 nits · pink > 600 nits" : S.inspTarget === "ig" ? `Instagram ${igSize(S.files.get(id)).join("×")}` : S.inspTarget === "hdr" ? `Ultra HDR ${r.w}×${r.h} · in HDR on an HDR display` : `SDR base · ${r.w}×${r.h} preview`;

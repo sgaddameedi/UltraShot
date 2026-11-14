@@ -1,4 +1,4 @@
-"""Store listing slides: eye-catching 1920x1080 screenshots for the Microsoft Store.
+"""Store listing slides: eye-catching 3840x2160 screenshots for the Microsoft Store.
 
 Each slide shows one feature large, on a frameless capture of the real app, with a headline. The
 app is fed the 4K gallery pictures (turned back into scRGB JPEG XL captures in a scratch folder, so
@@ -18,8 +18,10 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 import webview
 
-# keep the window in SDR composition while capturing (see SDR_CAPTURE in ultrashot.py)
+# keep the window in SDR composition while capturing (see SDR_CAPTURE in ultrashot.py), and render the
+# 1920x1080 interface at a device scale of 2 so every capture is 3840x2160 at full sharpness
 os.environ["ULTRASHOT_SDR_CAPTURE"] = "1"
+os.environ["WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"] = "--force-device-scale-factor=2"
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -30,7 +32,8 @@ import make_logo  # noqa: E402
 from screenshots import grab_window  # noqa: E402
 
 OUT = os.path.join(ROOT, "packaging", "msix", "store-listing", "slides")
-W, H = 1920, 1080
+S = 2                      # layout scale: the slide is the 1920x1080 design at twice the size
+W, H = 1920 * S, 1080 * S
 GALLERY = os.path.join(ROOT, "examples", "gallery")
 # order matters: the first becomes the hero of the viewer slides
 # colourful but not blown out: the sunsets put a fifth of the frame above SDR white and clip in SDR
@@ -86,24 +89,24 @@ def compose_image(shot, headline, subline):
         _AURORA = make_logo.aurora(W, H).convert("RGBA")
     canvas = _AURORA.copy()
     d = ImageDraw.Draw(canvas)
-    f1 = make_logo.font(make_logo.FONT_BOLD, 58)
-    f2 = make_logo.font(make_logo.FONT_REG, 25)
-    d.text((110, 68), headline, font=f1, fill=(246, 243, 236))
+    f1 = make_logo.font(make_logo.FONT_BOLD, 58 * S)
+    f2 = make_logo.font(make_logo.FONT_REG, 25 * S)
+    d.text((110 * S, 68 * S), headline, font=f1, fill=(246, 243, 236))
     # subline wrapped to the width
     words, lines, cur = subline.split(), [], ""
     for w in words:
         t = (cur + " " + w).strip()
-        if d.textbbox((0, 0), t, font=f2)[2] > 1500: lines.append(cur); cur = w
+        if d.textbbox((0, 0), t, font=f2)[2] > 1500 * S: lines.append(cur); cur = w
         else: cur = t
     lines.append(cur)
-    for i, ln in enumerate(lines): d.text((112, 150 + i * 34), ln, font=f2, fill=(190, 184, 172))
-    sw = 1640; sh = round(shot.height * sw / shot.width)
-    shot = rounded(shot.resize((sw, sh), Image.LANCZOS), 20)
-    shadow = Image.new("RGBA", (sw + 160, sh + 160), (0, 0, 0, 0))
-    ImageDraw.Draw(shadow).rounded_rectangle((80, 100, sw + 80, sh + 100), 20, fill=(0, 0, 0, 170))
-    shadow = shadow.filter(ImageFilter.GaussianBlur(40))
-    x, y = 140, 250
-    canvas.alpha_composite(shadow, (x - 80, y - 80))
+    for i, ln in enumerate(lines): d.text((112 * S, (150 + i * 34) * S), ln, font=f2, fill=(190, 184, 172))
+    sw = 1640 * S; sh = round(shot.height * sw / shot.width)
+    shot = rounded(shot.resize((sw, sh), Image.LANCZOS), 20 * S)
+    shadow = Image.new("RGBA", (sw + 160 * S, sh + 160 * S), (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).rounded_rectangle((80 * S, 100 * S, sw + 80 * S, sh + 100 * S), 20 * S, fill=(0, 0, 0, 170))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(40 * S))
+    x, y = 140 * S, 250 * S
+    canvas.alpha_composite(shadow, (x - 80 * S, y - 80 * S))
     canvas.alpha_composite(shot, (x, y))
     return canvas.convert("RGB")
 

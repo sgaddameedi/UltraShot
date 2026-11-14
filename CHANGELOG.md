@@ -11,6 +11,10 @@ Nothing yet.
 ## [1.2.1] - 2026-11-14
 
 ### Fixed
+- Thumbnails and previews are rendered for the screen they are shown on. They were fixed at 520 and
+  1100 pixels, sized for a 1080p window, and were stretched more than twice on a 4K or high-density
+  display; the page now reports the real tile and preview size, the app renders to it, and the
+  working copy of each capture is kept at 2048 pixels wide so previews stay sharp.
 - scRGB captures that contain colours outside BT.709, which is what an HDR10 console or game
   captured through OBS or a capture card produces, had those colours clamped to the BT.709 boundary
   before encoding. Such captures are now moved to BT.2020 and encoded with the wide gamut, so the

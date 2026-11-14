@@ -1,4 +1,4 @@
-"""Store trailer: a short silent 1080p MP4 for the Microsoft Store listing, plus its thumbnail.
+"""Store trailer: a short silent 4K MP4 for the Microsoft Store listing, plus its thumbnail.
 
 The app runs frameless at 3840x2160 with WebView2 forced to a device scale of 2, so every capture
 is the 1920x1080 interface at twice the resolution. A virtual camera then moves over the composed
@@ -36,9 +36,9 @@ from store_slides import make_sources  # noqa: E402
 
 OUT_DIR = os.path.join(ROOT, "packaging", "msix", "store-listing")
 FPS = 30
-W, H = 1920, 1080          # output
-S = 2                      # capture scale
-CW, CH = W * S, H * S      # composition canvas, at capture scale
+S = 2                      # capture and layout scale: the 1920x1080 design at twice the size
+W, H = 1920 * S, 1080 * S  # output: 3840x2160
+CW, CH = W, H              # the composition canvas is the output size
 SHOT_W = 1640 * S          # the app capture's width on the canvas
 SHOT_X, SHOT_Y = 140 * S, 250 * S
 
@@ -111,7 +111,7 @@ def card(title, lines):
 
 # ---------------------------------------------------------------- the camera and the reel
 
-FULL = (0, 0, W, H)      # camera rectangles are in output pixels over the 1920x1080 slide
+FULL = (0, 0, 1920, 1080)   # camera rectangles are in 1920x1080 slide units
 
 
 def ease(t):
@@ -131,15 +131,25 @@ def app_rect(x, y, w, h):
     rw, rh = w * k * 1.12, h * k * 1.12
     if rw / rh < 16 / 9: rw = rh * 16 / 9
     else: rh = rw * 9 / 16
-    rw, rh = min(rw, W), min(rh, H)
-    rx, ry = max(0, min(W - rw, cx - rw / 2)), max(0, min(H - rh, cy - rh / 2))
+    rw, rh = min(rw, 1920), min(rh, 1080)
+    rx, ry = max(0, min(1920 - rw, cx - rw / 2)), max(0, min(1080 - rh, cy - rh / 2))
     return (rx, ry, rw, rh)
 
 
 class Reel:
-    def __init__(self, folder):
-        self.folder = folder; self.n = 0; self.last = None
-        shutil.rmtree(folder, ignore_errors=True); os.makedirs(folder)
+    """Output frames go straight into FFmpeg's stdin as raw RGB, so 4K never touches the disk."""
+    def __init__(self, out_path):
+        self.n = 0; self.last = None
+        self.proc = subprocess.Popen([ffmpeg(), "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
+                                      "-s", f"{W}x{H}", "-framerate", str(FPS), "-i", "-",
+                                      "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-shortest",
+                                      "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
+                                      "-profile:v", "high", "-level", "5.1", "-c:a", "aac", "-b:a", "64k",
+                                      "-movflags", "+faststart", out_path], stdin=subprocess.PIPE)
+
+    def finish(self):
+        self.proc.stdin.close(); self.proc.wait()
+        if self.proc.returncode: raise SystemExit("FFmpeg failed")
 
     @staticmethod
     def _canvas(item):
@@ -148,18 +158,17 @@ class Reel:
     def _render(self, canvas, rect):
         canvas = self._canvas(canvas)
         x, y, w, h = rect
-        # sub-pixel crop through an affine transform, then LANCZOS down to the output size
-        sx = w * S / W
+        # the camera rectangle is in 1920x1080 slide units; the canvas is that design at S times the size
         box = (x * S, y * S, (x + w) * S, (y + h) * S)
-        if abs(sx - 1.0) < 1e-6 and abs(box[0] - round(box[0])) < 1e-6:
-            return canvas.crop(tuple(round(v) for v in box)).resize((W, H), Image.LANCZOS)
-        # transform maps output pixel (u,v) -> canvas (x*S + u*sx, y*S + v*sx); render at 2x then down-sample for quality
-        mid = canvas.transform((W * 2, H * 2), Image.AFFINE, (sx / 2, 0, box[0], 0, sx / 2, box[1]), resample=Image.BICUBIC)
-        return mid.resize((W, H), Image.LANCZOS)
+        sx = (box[2] - box[0]) / W
+        if abs(sx - 1.0) < 1e-6 and abs(box[0] - round(box[0])) < 1e-6 and abs(box[1] - round(box[1])) < 1e-6:
+            return canvas if (box[0] == 0 and box[1] == 0) else canvas.crop(tuple(round(v) for v in box))
+        # sub-pixel crop through an affine transform: output pixel (u,v) -> canvas (box.x + u*sx, box.y + v*sx)
+        return canvas.transform((W, H), Image.AFFINE, (sx, 0, box[0], 0, sx, box[1]), resample=Image.BICUBIC)
 
     def push(self, canvas, rect=FULL):
-        img = canvas if (not isinstance(canvas, tuple) and canvas.size == (W, H)) else self._render(canvas, rect)
-        img.save(os.path.join(self.folder, f"{self.n:05d}.png"), compress_level=1)
+        img = canvas if (not isinstance(canvas, tuple) and canvas.size == (W, H) and rect == FULL) else self._render(canvas, rect)
+        self.proc.stdin.write(img.tobytes())
         self.n += 1; self.last = img
 
     def hold(self, canvas, seconds, rect=FULL):
@@ -306,7 +315,8 @@ def main():
         "settings": ("Set it once.", "A watch folder converts new captures as you play. Runs from the tray, starts with Windows."),
     }
     C = lambda seq, head: [(p, T[head]) for p in seqs[seq]]      # noqa: E731  (composed lazily)
-    reel = Reel(os.path.join(scratch, "frames"))
+    out = os.path.join(OUT_DIR, "trailer.mp4")
+    reel = Reel(out)
 
     # camera targets, in the app's own interface pixels (1920x1080 layout)
     INSPECTOR = app_rect(1420, 100, 490, 980)
@@ -355,13 +365,8 @@ def main():
 
     closer = card("UltraShot", ["Free and open source.", "sgaddameedi.github.io/UltraShot"])
     reel.fade_to(closer, 0.6); reel.hold(closer, 2.6); reel.fade_to(black, 0.8)
-    print(reel.n, "frames,", round(reel.n / FPS, 1), "s")
-
-    out = os.path.join(OUT_DIR, "trailer.mp4")
-    subprocess.run([ffmpeg(), "-y", "-loglevel", "error", "-framerate", str(FPS), "-i", os.path.join(reel.folder, "%05d.png"),
-                    "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-shortest",
-                    "-c:v", "libx264", "-preset", "slow", "-crf", "17", "-pix_fmt", "yuv420p", "-profile:v", "high", "-level", "4.1",
-                    "-c:a", "aac", "-b:a", "64k", "-movflags", "+faststart", out], check=True)
+    print(reel.n, "frames,", round(reel.n / FPS, 1), "s; encoding")
+    reel.finish()
     reel._render(vw[0], FULL).save(os.path.join(OUT_DIR, "trailer-thumbnail.png"), optimize=True)
     print("wrote", out, f"({os.path.getsize(out) / 1e6:.1f} MB) and trailer-thumbnail.png")
 

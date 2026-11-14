@@ -64,9 +64,10 @@ STARTUP_DIR = os.path.join(APPDATA, r"Microsoft\Windows\Start Menu\Programs\Star
 STARTUP_LNK = os.path.join(STARTUP_DIR, "UltraShot.lnk")
 SINGLE_INSTANCE_PORT = 47811
 EXTS = (".jxl", ".jxr")
-PREVIEW_W = 1280
-THUMB_W = 520
-CACHE_SIZE = 8
+PREVIEW_W = 2048          # the cached working copy of a capture; previews are cut from it
+THUMB_W = 520             # the smallest thumbnail; the page asks for more on large or high-density screens
+THUMB_MAX = 1600
+CACHE_SIZE = 6
 
 
 def default_capture_dir():
@@ -88,7 +89,7 @@ DEFAULTS = dict(
     tray=True, startup=True, explorer_menu=False,
     exposure=0.0, knee=0.6, auto_sdr=False, quality=100, peak_nits=0, limit_nits=0, transfer="auto",
     win_w=1280, win_h=840, win_x=-1, win_y=-1,
-    pane_order=[], pane_widths={}, tile_sort="added_desc",
+    pane_order=[], pane_widths={}, tile_sort="added_desc", thumb_w=THUMB_W,
 )
 
 
@@ -123,7 +124,7 @@ def luminance(nits, gamut):
     return nits @ w
 
 
-def jpeg_data_url(rgb, quality=86):
+def jpeg_data_url(rgb, quality=90):
     im = Image.fromarray(np.ascontiguousarray(rgb[..., :3]), "RGB")
     buf = io.BytesIO()
     im.save(buf, "JPEG", quality=quality, subsampling=0)
@@ -428,11 +429,28 @@ class App:
         return [f["id"] for f in added]
 
     # ------------------------------------------------------------- session (the list survives restarts)
-    @staticmethod
-    def _thumb_key(path, mtime, size):
-        """Cache file name for a thumbnail: changes whenever the capture itself changes."""
+    def _thumb_key(self, path, mtime, size):
+        """Cache file name for a thumbnail: changes whenever the capture or the thumbnail size changes."""
         h = hashlib.sha1(path.lower().encode("utf-8", "replace")).hexdigest()[:20]
-        return f"{h}-{int(mtime)}-{int(size)}.jpg"
+        return f"{h}-{int(mtime)}-{int(size)}-{self.thumb_w}.jpg"
+
+    @property
+    def thumb_w(self):
+        return int(max(THUMB_W, min(THUMB_MAX, int(self.settings.get("thumb_w") or THUMB_W))))
+
+    def set_thumb_width(self, w):
+        """The page reports how large tiles really are on its screen (CSS size times device pixel
+        ratio). Thumbnails are re-rendered only when the request is larger than what we have."""
+        w = int(max(THUMB_W, min(THUMB_MAX, int(w))))
+        w = (w + 63) // 64 * 64                       # coarse steps, so a resize does not churn the cache
+        if w <= self.thumb_w:
+            return self.thumb_w
+        with self.lock:
+            self.settings["thumb_w"] = w
+        save_settings(self.settings)
+        self.log(f"thumbnails at {w} px for this screen")
+        self.refresh_thumbs()
+        return w
 
     def _store_thumb(self, f, data_url):
         try:
@@ -688,7 +706,7 @@ class App:
                 continue
             try:
                 small, gamut, stats = self._load_small(f["path"])
-                thumb, _, _ = self.render(small, gamut, THUMB_W, self.settings["exposure"],
+                thumb, _, _ = self.render(small, gamut, self.thumb_w, self.settings["exposure"],
                                           self.settings["knee"], self.settings["auto_sdr"], grade=f.get("edit"))
                 f["stats"], f["thumb"] = stats, thumb
                 self._store_thumb(f, thumb)
@@ -709,11 +727,12 @@ class App:
                  cx=(f.get("edit") or {}).get("crop_x", s["crop_x"]), cy=(f.get("edit") or {}).get("crop_y", s["crop_y"]),
                  heat=False, width=PREVIEW_W, edit=f.get("edit"))
         o.update({k: v for k, v in (opts or {}).items() if v is not None})
+        o["width"] = max(320, min(PREVIEW_W, int(o["width"])))
         url, w, h = self.render(small, gamut, int(o["width"]), o["exposure"], o["knee"], o["auto_sdr"],
                                 o["crop"], o["cx"], o["cy"], o["heat"], grade=o["edit"])
         return {"url": url, "w": w, "h": h, "stats": stats}
 
-    def hdr_preview(self, fid, edit=None):
+    def hdr_preview(self, fid, edit=None, width=1100):
         """A small Ultra HDR JPEG of the capture as it will be written, polish included, so the
         window can show it in real HDR on an HDR display."""
         with self.lock:
@@ -721,7 +740,7 @@ class App:
         if not f:
             return None
         small, gamut, stats = self._load_small(f["path"])
-        nits = jxl2uhdr.resize_linear(small, 1100)
+        nits = jxl2uhdr.resize_linear(small, max(320, min(PREVIEW_W, int(width or 1100))))
         s = self.settings
         tmp = os.path.join(tempfile.gettempdir(), f"ultrashot-hdr-preview-{os.getpid()}.jpg")
         data = jxl2uhdr.encode_uhdr(jxl2uhdr.apply_grade(nits, gamut, f.get("edit") if edit is None else edit), gamut, tmp,
@@ -1106,14 +1125,17 @@ class Api:
         except Exception as e:
             return {"error": f"{type(e).__name__}: {e}"}
 
-    def hdr_preview(self, fid, edit=None):
+    def hdr_preview(self, fid, edit=None, width=1100):
         try:
-            return self._app.hdr_preview(fid, edit)
+            return self._app.hdr_preview(fid, edit, width)
         except Exception as e:
             return {"error": f"{type(e).__name__}: {e}"}
 
     def set_edit(self, fid, patch, everyone=False):
         return self._app.set_edit(fid, patch, bool(everyone))
+
+    def set_thumb_width(self, w):
+        return self._app.set_thumb_width(w)
 
     def set_settings(self, patch):
         return self._app.set_settings(patch)
