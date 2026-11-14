@@ -72,7 +72,7 @@ One per line, each under 200 characters:
 
 ### Screenshots
 
-Desktop, 1920×1080, from `packaging\msix\store-listing\slides\`, produced by
+Desktop, 3840×2160, from `packaging\msix\store-listing\slides\`, produced by
 `python tools/store_slides.py`. Each slide shows one feature large on a frameless capture of the
 app running on the 4K gallery pictures, with its own headline, so the Store page reads as a tour
 rather than a row of small windows. Upload in this order; the caption field can stay empty since
@@ -90,9 +90,10 @@ the headline is in the picture, or carry the short line given here:
 ### Trailer
 
 `python tools/store_trailer.py` (after `tools/store_slides.py`) writes `trailer.mp4` and
-`trailer-thumbnail.png` into `packaging\msix\store-listing\`. The trailer is 57 seconds of 1080p
+`trailer-thumbnail.png` into `packaging\msix\store-listing\`. The trailer is 57 seconds of 3840×2160
 H.264 at 30 frames per second with a silent stereo track, which is what Partner Center accepts,
-and it is built from the real app recorded at twice the resolution, with a camera that eases into
+and it is built from the real app recorded with the interface at a device scale of 2, so the 4K
+frames are native detail, with a camera that eases into
 the inspector while the Polish sliders move, into the crop window while the Instagram frame is
 dragged, across the grid while every capture converts, into the compare metrics, the file details
 and the settings page, and an end card with the website. Under *Trailers and
