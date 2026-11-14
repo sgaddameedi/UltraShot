@@ -13,10 +13,10 @@
      The Store upload must NOT be signed: Partner Center signs it.
 
 .EXAMPLE
-  .\packaging\msix\build_msix.ps1 -Version 1.2.0.0 -IdentityName "12345Publisher.UltraShot" -Publisher "CN=0000-0000" -PublisherDisplayName "Your name"
+  .\packaging\msix\build_msix.ps1 -Version 1.2.1.0 -IdentityName "12345Publisher.UltraShot" -Publisher "CN=0000-0000" -PublisherDisplayName "Your name"
 #>
 param(
-  [string]$Version = "1.2.0.0",
+  [string]$Version = "1.2.1.0",
   [string]$IdentityName = "PLACEHOLDER.UltraShot",
   [string]$Publisher = "CN=PLACEHOLDER",
   [string]$PublisherDisplayName = "PLACEHOLDER",

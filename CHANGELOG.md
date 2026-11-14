@@ -6,6 +6,10 @@ All notable changes to UltraShot are documented here. The format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.2.1] - 2026-11-14
+
 ### Fixed
 - scRGB captures that contain colours outside BT.709, which is what an HDR10 console or game
   captured through OBS or a capture card produces, had those colours clamped to the BT.709 boundary

@@ -51,7 +51,7 @@ Supported input: JPEG XL (.jxl) from ReShade, including scRGB float and PQ 16-bi
 
 ### What's new in this version
 
-UltraShot 1.2 adds a Polish section with warmth, contrast, vibrance and shadow sliders and a watermark, applied in a way that leaves the HDR highlights exactly as captured, with an HDR preview that shows the finished picture in real HDR while you adjust. Instagram framing now works the way Instagram's own editor does: drag the picture inside the crop window, per capture. The viewer gains a compare mode that wipes between the SDR base and the HDR rendering or between the capture and the finished file at actual pixels, with error figures, and a file details panel that reads every tag back from the finished JPEG. The list survives restarts, tiles size themselves to the list, there is search, filter and sort, a right-click menu on every card, Convert again for replacing earlier outputs, and panes that can be rearranged and resized.
+UltraShot 1.2.1 keeps the colours beyond BT.709 in captures made through OBS or a capture card from an HDR10 console or game. Those colours arrive as negative values in the scRGB file and were being clamped before encoding; they are now carried through in BT.2020, so the deepest reds and greens survive, and the file details say so. Version 1.2 added Polish, Instagram framing by dragging, the compare view and file details, a remembered list, search, filter and sort, a right-click menu, Convert again, and movable panes.
 
 ### Product features
 

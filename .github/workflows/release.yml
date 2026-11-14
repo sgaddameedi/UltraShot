@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing release tag to (re)submit to winget, e.g. v1.2.0"
+        description: "Existing release tag to (re)submit to winget, e.g. v1.2.1"
         required: true
 
 permissions:

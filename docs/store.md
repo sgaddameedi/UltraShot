@@ -28,7 +28,7 @@ package:
 From the repository root, with Python and the project's dependencies installed:
 
 ```powershell
-.\packaging\msix\build_msix.ps1 -Version 1.2.0.0 -IdentityName "12345YourName.UltraShot" -Publisher "CN=12345678-ABCD-…" -PublisherDisplayName "Your Name"
+.\packaging\msix\build_msix.ps1 -Version 1.2.1.0 -IdentityName "12345YourName.UltraShot" -Publisher "CN=12345678-ABCD-…" -PublisherDisplayName "Your Name"
 ```
 
 The script builds the app, renders the tile and icon assets from the app icon, stages everything with
