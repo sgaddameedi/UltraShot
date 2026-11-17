@@ -7,8 +7,8 @@ together without re-encoding a single frame. The exported file carries the same 
 light metadata, the same Dolby Vision configuration where the source has one, and the same audio
 as the recording it came from. There is no quality setting because quality is never touched.
 
-The editor opens from the film-strip button in the toolbar, or on its own when a recording is
-dropped on the window. Everything stays on this machine: recordings are read from where they are,
+The editor is the *Video* tab at the top of the window, beside *Screenshots*, and it also opens on
+its own when a recording is dropped on the window. Everything stays on this machine: recordings are read from where they are,
 nothing is uploaded, and the only files written are the exports and, when the window cannot play a
 file directly, a small preview copy in a local cache.
 
@@ -49,13 +49,16 @@ as an MPEG transport stream, the editor builds a small SDR preview copy once and
 that instead, while the export still comes from the original. Preview copies are kept in a local
 cache that is capped at six gigabytes, oldest first.
 
-The timeline shows a film strip of the recording with the keyframes marked as thin lines when
-they are far enough apart to be told apart. Click or drag on it to move the playhead, drag the
-two handles to set the in and out points, or press I and O to set them at the playhead; the in
-handle snaps to a keyframe when released and the hint beside the transport says where it landed.
-The bracket keys jump the playhead to the previous and next keyframe, the arrow keys step one
-frame, with Shift one second, and Space plays and pauses. Add segment, or Enter, keeps the part
-between the handles as a numbered segment below the timeline. Segments can come from different
+Times are shown as timecode, hours, minutes, seconds and frames, and the in and out fields
+accept a typed time in that form, as minutes and seconds, or as plain seconds. The timeline shows
+a film strip of the recording under a ruler, with the keyframes marked as short ticks when they
+are far enough apart to be told apart, and the part outside the in and out points dimmed. Click or
+drag on it to move the playhead, drag the two handles to set the in and out points, or press I and
+O to mark them at the playhead; the in handle snaps to a keyframe when released and the line under
+the timeline says where it landed. The bracket keys jump the playhead to the previous and next
+keyframe, the arrow keys step one frame, with Shift one second, Space plays and pauses, and P plays
+the selection from in to out. Add segment, or Enter, keeps the part between the handles as a
+numbered segment below the timeline. Segments can come from different
 recordings, can be reordered with the arrows on each one, previewed by clicking them and removed
 with the cross or the Delete key.
 

@@ -13,8 +13,10 @@ All notable changes to UltraShot are documented here. The format follows
   metadata, Dolby Vision configuration and audio of the export are read back and compared with the
   source after every export. Recordings stream from disk into the window's own player, so very
   large files open at once; a file the window cannot decode gets a small preview copy in a local
-  cache that is capped at six gigabytes. The editor opens from the toolbar or when a recording is
-  dropped on the window, and uses FFmpeg, which it can fetch itself when none is installed.
+  cache that is capped at six gigabytes. The editor is the Video tab beside Screenshots, opens on
+  its own when a recording is dropped on the window, shows timecode with typed in and out points, a
+  ruler, keyframe ticks and a guided first run, and uses FFmpeg, which it can fetch itself when none
+  is installed.
 
 ## [1.2.1] - 2026-11-14
 

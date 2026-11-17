@@ -279,9 +279,8 @@ subfolder for each game. Notifications announce finished conversions while the w
 
 ### Trimming and joining HDR recordings
 
-The film-strip button in the toolbar opens a video editor for the recordings that the NVIDIA App,
-OBS, the Game Bar, a capture card or a phone write, and dropping a recording on the window opens it
-too. Recordings are trimmed, cut into segments and joined without re-encoding: in points snap to
+The *Video* tab at the top of the window is an editor for the recordings that the NVIDIA App, OBS,
+the Game Bar, a capture card or a phone write, and dropping a recording on the window opens it too. Recordings are trimmed, cut into segments and joined without re-encoding: in points snap to
 keyframes, the packets between in and out are copied as they are, and the export is read back and
 compared with its source so that the codec, the 10-bit samples, the BT.2020 and PQ or HLG tags, the
 mastering display and content light metadata, a Dolby Vision configuration and the audio are known

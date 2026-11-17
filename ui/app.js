@@ -897,7 +897,8 @@ function bindUI() {
   $("#btnSettings").addEventListener("click", () => $("#settings").classList.contains("open") ? closeSettings() : openSettings());
   $("#settingsBack").addEventListener("click", closeSettings);
   $("#btnLog").addEventListener("click", toggleLog);
-  $("#btnVideo").addEventListener("click", () => VideoUI.open());
+  $("#mode").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; b.dataset.mode === "video" ? VideoUI.open() : VideoUI.close(); });
+  $("#dzVideo").addEventListener("click", (e) => { e.stopPropagation(); VideoUI.open(); });
   $("#btnLogClose").addEventListener("click", closeLog);
   $("#btnLogClear").addEventListener("click", () => { $("#logbody").innerHTML = ""; });
   $("#watchPill").addEventListener("click", () => S.api.set_watch(!S.watching));
