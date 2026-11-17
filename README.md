@@ -10,7 +10,7 @@
   <a href="https://github.com/sgaddameedi/UltraShot/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/sgaddameedi/UltraShot/ci.yml?style=flat-square&label=tests"></a>
 </p>
 
-# UltraShot: HDR game screenshots to Ultra HDR JPEG, for Instagram, Threads and the web
+# UltraShot: HDR game screenshots to Ultra HDR JPEG, and HDR recordings cut losslessly for Shorts, Reels and YouTube
 
 <p align="center"><b>Website: <a href="https://sgaddameedi.github.io/UltraShot/">sgaddameedi.github.io/UltraShot</a></b> &nbsp;·&nbsp; <a href="https://github.com/sgaddameedi/UltraShot/releases/latest">Download for Windows</a> &nbsp;·&nbsp; <a href="docs/instagram.md">Instagram guide</a></p>
 
@@ -29,6 +29,14 @@ of the details that otherwise go wrong along the way: the HDR data is never tone
 gain-map metadata is written so that phones apply the full HDR range rather than a fraction of it, and
 cropping and resizing for Instagram happen before upload, at full quality, so that Instagram's own
 processing has no reason to discard the HDR layer.
+
+The same window has a *Video* tab for HDR recordings. Recordings from the NVIDIA App, OBS, the Game
+Bar, a capture card or a phone are trimmed, cut into pieces and joined without re-encoding a frame:
+the cuts land on keyframes, the packets are copied as recorded, and every export is read back and
+checked against its source so the codec, the 10-bit samples, the colour tags and the HDR metadata
+are known to have survived. A frame choice reframes an export for Shorts, Reels and feed posts, 9:16,
+4:5, 1:1 or 16:9, with the window dragged on the player; that one export is encoded again on the GPU
+at near-lossless quality with the HDR carried across, and the editor says so.
 
 ## Why HDR screenshots are so hard to share
 
@@ -292,7 +300,7 @@ export is encoded again on the GPU at near-lossless quality with every HDR tag c
 the panel says so. The editor is built on FFmpeg, which it can fetch itself when none is installed. [docs/video.md](docs/video.md) explains how a keyframe cut works and
 describes the editor.
 
-<p align="center"><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/docs/screenshots/video-editor.png"><img src="docs/screenshots/video-editor.png" width="90%" alt="The video editor after a joined export, with the verification report beside the player"></a></p>
+<p align="center"><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/docs/screenshots/video-editor.png"><img src="docs/screenshots/video-editor.png" width="90%" alt="The video editor with a segment marked on the timeline, the 9:16 frame drawn on the player and a finished export with its report"></a></p>
 
 ## Supported HDR screenshot formats
 

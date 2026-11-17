@@ -19,7 +19,8 @@ All notable changes to UltraShot are documented here. The format follows
   is installed. Everything can be done with the mouse: the empty player and the bin open the file
   picker, the in and out handles have grips, a right click on the timeline or a segment opens a
   menu, Split here cuts the selection in two on a keyframe, Reset returns the handles to the whole
-  recording, and Undo and Clear all take back segment changes.
+  recording, Undo and Clear all take back segment changes, the bar between the handles slides the
+  whole selection with its length kept, and Play on a finished export plays it in the editor.
 - A Frame choice in the video export for the shapes YouTube and Instagram lay out natively: 9:16
   for Shorts, Reels, TikTok and Stories, 4:5 and 1:1 for feed posts and 16:9 for landscape. The
   crop window is dragged on the player, the size is either every pixel inside the window or the

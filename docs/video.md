@@ -57,7 +57,10 @@ accept a typed time in that form, as minutes and seconds, or as plain seconds. T
 a film strip of the recording under a ruler, with the keyframes marked as short ticks when they
 are far enough apart to be told apart, and the part outside the in and out points dimmed. Click or
 drag on it to move the playhead and drag the two handles, marked IN and OUT, to set the in and out
-points. The *Mark* buttons beside the in and out fields do the same at the playhead, as do the I
+points. The bar that joins the two handles slides the whole selection along the recording with its
+length kept, which is the quick way to adjust a piece once its length is right; the in point snaps
+to a keyframe when the bar is released and the out point follows it. The *Mark* buttons beside the
+in and out fields set a point at the playhead, as do the I
 and O keys, and a right click on the timeline opens a menu that marks in or out, splits the
 selection, adds it as a segment, plays from that point or resets the handles. The in handle snaps
 to a keyframe when released and the line under the timeline says where it landed. *Reset* puts
@@ -80,8 +83,8 @@ segments into one file* on, the segments are written in their order into a singl
 you choose; joining requires that the segments share a codec, size, frame rate, pixel format and
 audio layout, which is the case for pieces of one recording or of recordings made with the same
 settings, and the editor says so when they do not. Progress and the verification report appear
-under the button, with shortcuts to open the file, show it in its folder or bring it back into
-the bin for a further cut.
+under the button, with *Play*, which plays the export in the editor's own player and adds it to
+the bin so it can be cut again, *Open* for your default video player, and *Show in folder*.
 
 ## Framing for Shorts, Reels and feeds
 

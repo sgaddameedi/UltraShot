@@ -22,6 +22,7 @@ import ultrashot as U  # noqa: E402
 
 OUT = os.environ.get("SHOT_OUT") or os.path.join(ROOT, "docs", "screenshots")
 W, H = int(os.environ.get("SHOT_W", 1280)), int(os.environ.get("SHOT_H", 840))   # SHOT_W=1920 SHOT_H=1080 for Store listings
+VIDEO = os.environ.get("SHOT_VIDEO", "")   # an HDR recording for the video editor screenshot; skipped when unset
 
 
 def grab_window(title, path):
@@ -52,6 +53,44 @@ def grab_window(title, path):
     user32.ReleaseDC(hwnd, hdc)
     img.save(path)
     print("saved", path, img.size)
+
+
+
+def video_scene(app, api, js, shot, video, width_px):
+    """The video editor on a real recording: a selection, one segment, the 9:16 frame with its
+    window on the player, and a finished reframed export with its report. Skipped without a file."""
+    if not video or not os.path.exists(video):
+        print("no recording given (SHOT_VIDEO), skipping the video editor screenshot")
+        return
+    import tempfile as _tf
+    js("VideoUI.open()")
+    ids = app.video.add_paths([video])
+    if not ids:
+        return
+    t = time.time()
+    while time.time() - t < 120 and app.video.videos[ids[0]]["status"] == "probing":
+        time.sleep(0.3)
+    time.sleep(4.0)
+    info = app.video.videos[ids[0]]["info"]
+    a = min(12.0, info["duration"] * 0.4)
+    js(f"vPlayer.currentTime = {a:.3f}; document.querySelector('#vSetIn').click()"); time.sleep(1.5)
+    js(f"vPlayer.currentTime = {a + 4.0:.3f}; document.querySelector('#vSetOut').click()"); time.sleep(0.6)
+    js("document.querySelector('#vAddSeg').click()"); time.sleep(0.5)
+    js("document.querySelector('#vFrame button[data-v=\"9:16\"]').click()"); time.sleep(0.8)
+    js("""(()=>{ const w=document.querySelector('#vCropWin'); const r=w.getBoundingClientRect(); const cx=r.left+r.width/2, cy=r.top+r.height/2;
+      const ev=(type,x,y)=>w.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,clientX:x,clientY:y,button:0,pointerId:1,isPrimary:true}));
+      ev('pointerdown',cx,cy); ev('pointermove',cx-%d,cy); ev('pointerup',cx-%d,cy); })()""" % (width_px, width_px)); time.sleep(0.5)
+    out_dir = _tf.mkdtemp(prefix="ultrashot-shots-video-")
+    orig = api.video_export
+    api.video_export = lambda segments, join=False, out_dir_=None, name="", frame=None: orig(segments, join, out_dir, name, frame)
+    js("document.querySelector('#vExport').click()")
+    t = time.time()
+    while time.time() - t < 600 and (not app.video.job or app.video.job.get("running")):
+        time.sleep(0.5)
+    api.video_export = orig
+    time.sleep(2.5)
+    js(f"vPlayer.currentTime = {a + 1.5:.3f}"); time.sleep(1.5)
+    shot("video-editor.png")
 
 
 def main():
@@ -135,6 +174,8 @@ def main():
         js("setCompare(false); document.querySelector('#lbInfo').click()")
         time.sleep(6.0)
         shot("file-details.png")
+        js("closeLightbox()"); time.sleep(0.8)
+        video_scene(app, api, js, shot, VIDEO, 160)
         window.destroy()
 
     window.events.loaded += lambda: threading.Thread(target=flow, daemon=True).start()

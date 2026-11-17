@@ -92,15 +92,16 @@ A converter with no network access answers "no" to everything and receives an al
 
 - *Description:*
 
-  > UltraShot turns HDR game screenshots into Ultra HDR JPEGs: ordinary JPEG files that carry a gain map, so Instagram, Threads, Google Photos, Chrome, Edge and Android phones display them in HDR while every other screen shows a correct SDR image. It reads the lossless JPEG XL files written by ReShade and the JPEG XR files written by the NVIDIA App and the Windows Game Bar, never alters the HDR data, writes gain-map metadata that phones apply in full, and prepares an Instagram-sized copy so nothing has to change during upload. A watch folder converts new captures automatically; the app runs from the tray and can start with Windows. Free and open source.
+  > UltraShot turns HDR game screenshots into Ultra HDR JPEGs: ordinary JPEG files that carry a gain map, so Instagram, Threads, Google Photos, Chrome, Edge and Android phones display them in HDR while every other screen shows a correct SDR image. It reads the lossless JPEG XL files written by ReShade and the JPEG XR files written by the NVIDIA App and the Windows Game Bar, never alters the HDR data, writes gain-map metadata that phones apply in full, and prepares an Instagram-sized copy so nothing has to change during upload. Its Video tab trims, splits and joins HDR recordings from the NVIDIA App, OBS and the Game Bar without re-encoding a frame, checks every export against its source, and reframes a piece for Shorts, Reels and feed posts with the HDR carried across. A watch folder converts new captures automatically; the app runs from the tray and can start with Windows. Free and open source.
 
 - *What's new in this version:* copy the matching section of `CHANGELOG.md`.
-- *App features* (one per line): Converts ReShade .jxl and NVIDIA / Game Bar .jxr HDR captures; Ultra HDR JPEG output that stays HDR on Instagram, Threads, Google Photos and Chrome; Watch folder converts new captures automatically; Live SDR preview with exposure and highlight controls; Instagram-ready crop and resize; Runs from the tray, starts with Windows.
+- *App features* (one per line): Converts ReShade .jxl and NVIDIA / Game Bar .jxr HDR captures; Ultra HDR JPEG output that stays HDR on Instagram, Threads, Google Photos and Chrome; Watch folder converts new captures automatically; Live SDR preview with exposure and highlight controls; Instagram-ready crop and resize; Lossless trim, split and join of HDR recordings, verified after every export; 9:16, 4:5, 1:1 and 16:9 reframing for Shorts, Reels and feeds with the HDR kept; Runs from the tray, starts with Windows.
 - *Screenshots:* 1920×1080 captures of every screen are produced by
   `SHOT_W=1920 SHOT_H=1080 SHOT_OUT=packaging/msix/store-listing/screenshots python tools/screenshots.py`
-  (on PowerShell set the three variables with `$env:` first). Upload `main`, `inspector`,
-  `instagram-crop`, `highlights-map`, `compare`, `file-details`, `panes-side-by-side` and
-  `settings`.
+  (on PowerShell set the three variables with `$env:` first); set `SHOT_VIDEO` to an HDR
+  recording as well and the run adds `video-editor`. Upload `main`, `inspector`,
+  `instagram-crop`, `highlights-map`, `compare`, `file-details`, `panes-side-by-side`,
+  `settings` and `video-editor`.
 - *Store logos:* `python packaging/msix/make_store_images.py` renders every image slot the
   listing offers into `packaging/msix/store-listing/`: the 300, 150 and 71 pixel tile icons,
   1:1 box art, 2:3 and 9:16 poster art, 16:9 super hero art at 4K and HD, and 2:1 promotional

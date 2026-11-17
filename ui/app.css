@@ -101,6 +101,8 @@ body.pane-drag, body.pane-drag * { cursor: grabbing !important; user-select: non
 .v-stage-chip:empty { display: none; }
 .v-transport { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .v-tgroup { display: flex; align-items: center; gap: 8px; }
+.v-tgroup.v-marks { flex-wrap: wrap; row-gap: 6px; }
+.v-transport { overflow: hidden; }
 .v-play { background: var(--accent); color: #1b1200; border-color: transparent; }
 .v-play:hover { background: var(--accent); filter: brightness(1.08); }
 .v-time { font-variant-numeric: tabular-nums; font-size: 14px; font-weight: 600; margin-left: 6px; letter-spacing: .3px; }
@@ -119,6 +121,11 @@ input.tc:focus { border-color: var(--accent); }
 .v-strip div { flex: 1; background-size: cover; background-position: center; }
 .v-shade { position: absolute; top: 0; bottom: 0; background: rgba(0,0,0,.62); pointer-events: none; }
 .v-shade-l { left: 0; width: 0; } .v-shade-r { right: 0; width: 0; }
+.v-range { position: absolute; top: 0; height: 12px; left: 0; width: 0; background: rgba(255,193,77,.28); border-bottom: 1px solid rgba(255,193,77,.6); cursor: grab; z-index: 1; }
+.v-range:hover { background: rgba(255,193,77,.45); }
+.v-range::before { content: ""; position: absolute; left: 50%; top: 3px; width: 18px; height: 5px; margin-left: -9px; border-radius: 3px; background: rgba(27,18,0,.55); background-image: linear-gradient(90deg, rgba(255,193,77,.9) 0 2px, transparent 2px 4px); background-size: 4px 100%; }
+.v-timeline.dragging .v-range { cursor: grabbing; }
+.v-timeline.idle .v-range { display: none; }
 .v-ticks { position: absolute; inset: 0; pointer-events: none; }
 .v-ticks i { position: absolute; top: 0; height: 8px; width: 1px; background: rgba(255,255,255,.55); }
 .v-handle { position: absolute; top: 0; bottom: 0; width: 14px; margin-left: -7px; cursor: ew-resize; z-index: 2; }

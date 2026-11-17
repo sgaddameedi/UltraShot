@@ -71,6 +71,7 @@ window.VideoUI = (() => {
       case "video_open": open(); break;
       case "video_file":
         upsert(p); renderBin();
+        if (p.id === V.pendingPlay && p.status === "ready") { V.pendingPlay = null; select(p.id, true); playFromStart(); renderGuide(); break; }
         if (p.id === V.cur) {
           if (p.status === "ready" && !V.videos.get(p.id)._loaded) select(p.id, true);
           if (p.proxy_url && V.proxy && P.src !== p.proxy_url) { P.src = p.proxy_url; P.load(); $("#vStageMsg").textContent = ""; }
@@ -209,6 +210,7 @@ window.VideoUI = (() => {
     const tl = $("#vTimeline"), d0 = dur();
     tl.classList.toggle("tight", d0 > 0 && (V.outT - V.inT) / d0 * tl.clientWidth < 44);
     $("#vShadeL").style.width = t2pct(V.inT); $("#vShadeR").style.width = t2pct(Math.max(0, dur() - V.outT));
+    $("#vRange").style.left = t2pct(V.inT); $("#vRange").style.width = t2pct(Math.max(0, V.outT - V.inT));
     const f = fps();
     $("#vInTc").value = tc(V.inT, f); $("#vOutTc").value = tc(V.outT, f);
     $("#vSel").textContent = V.cur ? `${secs(V.outT - V.inT)} selected` : "";
@@ -297,9 +299,10 @@ window.VideoUI = (() => {
     tl.addEventListener("pointerdown", (e) => {
       if (!V.cur) return;
       if (e.button === 2) return;
-      const h = e.target.closest(".v-handle");
-      drag = h ? (h.id === "vIn" ? "in" : "out") : "seek";
-      if (h) coach(false);
+      const h = e.target.closest(".v-handle"), rg = e.target.closest(".v-range");
+      drag = h ? (h.id === "vIn" ? "in" : "out") : rg ? { x: e.clientX, inT: V.inT, len: V.outT - V.inT } : "seek";
+      if (h || rg) coach(false);
+      tl.classList.toggle("dragging", !!rg);
       tl.setPointerCapture?.(e.pointerId);
       move(e); e.preventDefault();
     });
@@ -309,10 +312,21 @@ window.VideoUI = (() => {
       if (!drag) return;
       if (drag === "seek") seek(t);
       else if (drag === "in") { V.inT = Math.min(t, V.outT); layoutRange(); seek(V.inT); }
-      else { V.outT = Math.max(t, V.inT); layoutRange(); seek(V.outT); }
+      else if (drag === "out") { V.outT = Math.max(t, V.inT); layoutRange(); seek(V.outT); }
+      else {
+        // slide the whole selection, keeping its length, and show its start under the pointer
+        const d = dur(), dt = (e.clientX - drag.x) / tl.clientWidth * d;
+        V.inT = clamp(drag.inT + dt, 0, Math.max(0, d - drag.len)); V.outT = Math.min(d, V.inT + drag.len);
+        layoutRange(); seek(V.inT); c.style.left = t2pct(V.inT); c.textContent = tc(V.inT, fps());
+      }
     };
     tl.addEventListener("pointermove", move);
-    const up = () => { if (!drag) return; const d = drag; drag = null; if (d === "in") setIn(V.inT); else if (d === "out") setOut(V.outT); };
+    const up = () => {
+      if (!drag) return; const d = drag; drag = null; tl.classList.remove("dragging");
+      if (d === "in") setIn(V.inT);
+      else if (d === "out") setOut(V.outT);
+      else if (typeof d === "object") { const len = d.len; Promise.resolve(setIn(V.inT)).then(() => { V.outT = Math.min(dur(), V.inT + len); layoutRange(); }); }
+    };
     tl.addEventListener("pointerup", up); tl.addEventListener("pointercancel", up);
     tl.addEventListener("dblclick", (e) => { e.preventDefault(); togglePlay(); });
     tl.addEventListener("contextmenu", timelineMenu);
@@ -486,12 +500,25 @@ window.VideoUI = (() => {
       d.innerHTML = `<div class="nm">${esc(rep.output.split(/[\\/]/).pop())}</div>
         <div class="${rep.all_ok ? "ok" : "bad"}">${esc(head)} · ${hms(rep.duration)} · ${fmtSize(rep.size)}</div>
         <details${rep.all_ok ? "" : " open"}><summary>${esc(rep.summary)}</summary><table>${rows}</table></details>
-        <div class="acts"><button class="ghost tiny" data-open>Open</button><button class="ghost tiny" data-reveal>Show in folder</button><button class="ghost tiny" data-add>Add to editor</button></div>`;
+        <div class="acts"><button class="primary small" data-play title="Play the exported file here; it is added to Recordings so it can be cut again">▶ Play</button><button class="ghost tiny" data-open title="Open in your default video player">Open</button><button class="ghost tiny" data-reveal>Show in folder</button></div>`;
+      d.querySelector("[data-play]").addEventListener("click", () => playFile(rep.output));
       d.querySelector("[data-open]").addEventListener("click", () => api.open_path(rep.output));
       d.querySelector("[data-reveal]").addEventListener("click", () => api.reveal(rep.output));
-      d.querySelector("[data-add]").addEventListener("click", () => api.video_add([rep.output]));
       box.appendChild(d);
     }
+  }
+
+  async function playFile(path) {
+    // an export goes into the bin like any recording and plays from its start
+    const have = [...V.videos.values()].find((v) => (v.path || "").toLowerCase() === path.toLowerCase());
+    if (have) { if (have.status === "ready") { select(have.id); playFromStart(); } else V.pendingPlay = have.id; return; }
+    const ids = await api.video_add([path]);
+    V.pendingPlay = Array.isArray(ids) && ids.length ? ids[0] : null;
+    if (!V.pendingPlay) toast("Could not open the exported file", "err");
+  }
+  function playFromStart() {
+    const go = () => { V.previewEnd = null; seek(0); P.play(); };
+    if (P.readyState >= 1) go(); else P.addEventListener("loadedmetadata", go, { once: true });
   }
 
   // ------------------------------------------------------------- keys

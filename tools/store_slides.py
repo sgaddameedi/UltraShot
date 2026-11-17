@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 import jxl2uhdr  # noqa: E402
 import ultrashot as U  # noqa: E402
 import make_logo  # noqa: E402
-from screenshots import grab_window  # noqa: E402
+from screenshots import grab_window, video_scene  # noqa: E402
 
 OUT = os.path.join(ROOT, "packaging", "msix", "store-listing", "slides")
 S = 2                      # layout scale: the slide is the 1920x1080 design at twice the size
@@ -49,7 +49,9 @@ SLIDES = [  # file, headline, subline
     ("06-details", "Every tag, read back from the file.", "Gain map metadata, peak brightness, chroma, colour profile and signalling, so you know what you are posting."),
     ("07-highlights", "See where the HDR lives.", "The highlights map marks every pixel above SDR white, and every one above 600 nits."),
     ("08-settings", "Set it once. It watches your folder.", "Converts new captures as you play, runs from the tray, starts with Windows."),
+    ("09-video", "Cut HDR recordings. Lose nothing.", "Trim and join NVIDIA App, OBS and Game Bar recordings without re-encoding a frame, then frame them 9:16 for Shorts and Reels with the HDR carried across."),
 ]
+VIDEO = os.environ.get("SHOT_VIDEO", "")   # an HDR recording for the video slide; the slide is skipped when unset
 
 
 def make_sources(folder):
@@ -178,6 +180,8 @@ def main():
         shot("07-highlights")
         js("closeInspector(); openSettings()"); time.sleep(1.5)
         shot("08-settings")
+        js("closeSettings()"); time.sleep(0.8)
+        video_scene(app, api, js, lambda name: shot("09-video"), VIDEO, 160 * S)
         window.destroy()
 
     window.events.loaded += lambda: threading.Thread(target=flow, daemon=True).start()

@@ -43,15 +43,17 @@ UltraShot converts those captures into Ultra HDR JPEGs. An Ultra HDR file is a n
 
 The HDR data is never altered. UltraShot reads the capture at its full precision, measures its real peak brightness and writes gain-map metadata that matches it exactly, so phones apply the complete HDR layer rather than a fraction of it. You control the SDR side with a live preview: exposure and a highlight knee shape how the picture looks on ordinary screens, a highlights map shows where the HDR lives, and an Instagram-sized copy with a chosen crop is produced alongside the full-resolution file so nothing has to change at upload time.
 
+The Video tab does the same for HDR recordings. Clips from the NVIDIA App, OBS, the Windows Game Bar, a capture card or a phone are trimmed, split and joined without re-encoding a frame: cuts land on keyframes, the packets are copied as recorded, and every export is read back and compared with its source so the codec, the 10-bit samples, the colour tags, the mastering display and content light metadata and the audio are known to have survived. Recordings stream straight from disk, so a fifty-gigabyte file opens at once. A frame choice reframes a piece for Shorts, Reels and feed posts, 9:16, 4:5, 1:1 or 16:9, with the window dragged on the player; that one export is encoded again on the GPU at near-lossless quality with the HDR carried across, and the editor says so plainly.
+
 A watch folder converts new captures automatically as you play, the app lives in the system tray and can start with Windows, and the built-in viewer shows the finished files in HDR on an HDR display. Compare lets you wipe between the SDR base and the HDR rendering, or between the original capture and the finished file at actual pixels, with measured error figures, so you can see for yourself that nothing was lost. A details panel reads the finished JPEG back from disk and lists everything it contains, from chroma subsampling and the colour profile to the gain-map metadata and the peak brightness a phone will reconstruct.
 
 UltraShot runs entirely on your PC. It makes no network connections, collects no data and needs no account. It is free and open source under the MIT licence; the code, documentation and a gallery of 4K HDR examples are at github.com/sgaddameedi/UltraShot.
 
-Supported input: JPEG XL (.jxl) from ReShade, including scRGB float and PQ 16-bit captures; JPEG XR (.jxr) from the NVIDIA App and the Windows Game Bar. Output: Ultra HDR JPEG with an ISO 21496-1 and Adobe gain map, quality 100, 4:4:4 chroma.
+Supported input: JPEG XL (.jxl) from ReShade, including scRGB float and PQ 16-bit captures; JPEG XR (.jxr) from the NVIDIA App and the Windows Game Bar. Output: Ultra HDR JPEG with an ISO 21496-1 and Adobe gain map, quality 100, 4:4:4 chroma. Recordings: MP4, MKV, MOV, M2TS and WebM in HEVC, AV1 or H.264, HDR10, HLG, Dolby Vision or SDR; exports keep the recording's own codec, and reframed exports use AV1 or HEVC.
 
 ### What's new in this version
 
-UltraShot 1.2.1 keeps the colours beyond BT.709 in captures made through OBS or a capture card from an HDR10 console or game. Those colours arrive as negative values in the scRGB file and were being clamped before encoding; they are now carried through in BT.2020, so the deepest reds and greens survive, and the file details say so. Version 1.2 added Polish, Instagram framing by dragging, the compare view and file details, a remembered list, search, filter and sort, a right-click menu, Convert again, and movable panes.
+UltraShot 1.3 adds a Video tab for HDR recordings. Clips from the NVIDIA App, OBS, the Game Bar, a capture card or a phone are trimmed, split and joined without re-encoding a frame, with every export read back and checked against its source, and a frame choice reframes a piece for Shorts, Reels and feed posts with the HDR carried across. Everything is done with the mouse: drag the handles or slide the selection, right-click the timeline, split, undo, play the result in place. FFmpeg is fetched by the app when none is installed. Version 1.2.1 kept the colours beyond BT.709 in captures made through OBS or a capture card from an HDR10 source.
 
 ### Product features
 
@@ -66,6 +68,8 @@ One per line, each under 200 characters:
 - Watch folder converts new captures automatically while you play
 - Built-in viewer shows results in HDR, with a wipe between SDR and HDR or source and output
 - File details panel reads the finished JPEG back and lists every tag and the gain-map metadata
+- Trims, splits and joins HDR recordings on keyframes without re-encoding, every export verified against its source
+- Reframes a piece 9:16, 4:5, 1:1 or 16:9 for Shorts, Reels and feeds, encoded on the GPU with the HDR carried across
 - Runs from the system tray and can start with Windows
 - Works entirely offline, collects no data, needs no account
 - Free and open source under the MIT licence
@@ -86,6 +90,10 @@ the headline is in the picture, or carry the short line given here:
 6. `06-details.png`: Every tag in the finished JPEG, read back from the file
 7. `07-highlights.png`: The highlights map shows where the HDR lives
 8. `08-settings.png`: Watch folder, tray, start with Windows and the output settings
+9. `09-video.png`: Cut and join HDR recordings losslessly, and frame them for Shorts and Reels
+
+The video slide needs a real recording: set `SHOT_VIDEO` to an HDR recording before running
+`tools/store_slides.py`, otherwise that slide is skipped.
 
 ### Trailer
 
@@ -142,7 +150,7 @@ scales down for smaller placements. Slots the dashboard does not show can be ign
 
   > Turn HDR game screenshots into Ultra HDR JPEGs that stay HDR on Instagram, phones and the web.
 
-- Search terms (up to seven, each under 30 characters): `HDR screenshot`, `Ultra HDR`, `gain map`, `Instagram HDR`, `ReShade JXL`, `JXR converter`, `HDR to JPEG`
+- Search terms (up to seven, each under 30 characters): `HDR screenshot`, `Ultra HDR`, `gain map`, `Instagram HDR`, `ReShade JXL`, `HDR video trim`, `Shorts HDR`
 - Copyright and trademark info: `© 2026 Sharath Gaddameedi. Released under the MIT licence.`
 - Additional licence terms: `MIT licence: https://github.com/sgaddameedi/UltraShot/blob/main/LICENSE`
 - Developed by: `Sharath Gaddameedi`

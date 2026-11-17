@@ -18,7 +18,7 @@
     </div>
     <div>
       <div class="title">UltraShot <span class="ver" id="ver"></span></div>
-      <div class="sub">HDR screenshots → Ultra HDR JPEG for Instagram, phones &amp; browsers</div>
+      <div class="sub">HDR screenshots → Ultra HDR JPEG · HDR recordings → lossless cuts, Shorts &amp; Reels</div>
     </div>
   </div>
   <div class="mode" id="mode" role="tablist" aria-label="Workspace">
@@ -220,7 +220,7 @@
         <div class="v-crop hidden" id="vCrop"><div class="v-crop-win" id="vCropWin" title="Drag to choose what stays in the frame; double-click to centre it"><span class="v-crop-tag" id="vCropTag"></span></div></div>
         <div class="v-guide" id="vGuide">
           <div class="v-step"><b>1</b><span>Add a recording</span><small>Click anywhere here to choose files, or drop them on the window.</small><button class="primary small" id="vGuideAdd">Choose recordings</button></div>
-          <div class="v-step"><b>2</b><span>Mark in and out</span><small>Drag the IN and OUT handles on the timeline, right-click it, or use the Mark buttons.</small></div>
+          <div class="v-step"><b>2</b><span>Mark in and out</span><small>Drag the IN and OUT handles on the timeline, slide the bar between them to move the whole selection, or right-click the timeline.</small></div>
           <div class="v-step"><b>3</b><span>Add segment, then export</span><small>Keep as many pieces as you like and export them as separate files or one joined file.</small></div>
         </div>
         <div class="v-stage-msg" id="vStageMsg"></div>
@@ -247,13 +247,14 @@
       <div class="v-timeline idle" id="vTimeline">
         <div class="v-strip" id="vStrip"></div>
         <div class="v-shade v-shade-l" id="vShadeL"></div>
+        <div class="v-range" id="vRange" title="Drag to slide the whole selection along the recording, keeping its length"></div>
         <div class="v-shade v-shade-r" id="vShadeR"></div>
         <div class="v-ticks" id="vTicks"></div>
         <div class="v-handle v-in" id="vIn" title="In point: drag it, it snaps to a keyframe"><span>IN</span></div>
         <div class="v-handle v-out" id="vOut" title="Out point: drag it"><span>OUT</span></div>
         <div class="v-playhead" id="vPlayhead"></div>
         <div class="v-cursor" id="vCursor"></div>
-        <div class="v-coach hidden" id="vCoach">Drag the <b>IN</b> and <b>OUT</b> handles to choose a part, or right-click anywhere on the timeline</div>
+        <div class="v-coach hidden" id="vCoach">Drag the <b>IN</b> and <b>OUT</b> handles to choose a part, slide the bar between them to move it, or right-click the timeline</div>
       </div>
       <div class="v-hint" id="vSnapHint"></div>
       <div class="v-segments" id="vSegments"></div>
