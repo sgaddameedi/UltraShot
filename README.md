@@ -291,6 +291,8 @@ while the export still comes from the original. The editor is built on FFmpeg, w
 itself when none is installed. [docs/video.md](docs/video.md) explains how a keyframe cut works and
 describes the editor.
 
+<p align="center"><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/docs/screenshots/video-editor.png"><img src="docs/screenshots/video-editor.png" width="90%" alt="The video editor after a joined export, with the verification report beside the player"></a></p>
+
 ## Supported HDR screenshot formats
 
 | Capture tool | File | Contents | Notes |
