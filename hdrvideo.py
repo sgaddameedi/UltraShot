@@ -176,6 +176,9 @@ def probe(ffprobe, path):
         "path": path, "name": os.path.basename(path), "size": int(fmt.get("size") or os.path.getsize(path)),
         "container": (fmt.get("format_name") or "").split(",")[0],
         "duration": float(v.get("duration") or fmt.get("duration") or 0.0), "container_duration": float(fmt.get("duration") or 0.0),
+        # transport streams start their clock at about 1.4 s; every time the editor shows or cuts at
+        # is relative to this, so the player, the keyframes and the cuts agree
+        "start": float(v.get("start_time") or fmt.get("start_time") or 0.0),
         "bit_rate": int(fmt.get("bit_rate") or 0),
         "video": {"codec": v.get("codec_name"), "codec_tag": v.get("codec_tag_string"), "profile": v.get("profile"), "width": v.get("width"), "height": v.get("height"),
                   "fps": round(fps, 3), "pix_fmt": pix, "bit_depth": depth, "bit_rate": int(v.get("bit_rate") or 0), "index": v.get("index")},
@@ -225,10 +228,10 @@ def summary(info):
 
 # ----------------------------------------------------------------------------- keyframes
 
-def keyframes_near(ffprobe, path, t, span=6.0, stream=None):
-    """Keyframe times (seconds) within `span` seconds around `t`, read from packet headers only,
-    so it is fast even on a very large file."""
-    a = max(0.0, t - span)
+def keyframes_near(ffprobe, path, t, span=6.0, start=0.0):
+    """Keyframe times (seconds, relative to the stream start) within `span` seconds around `t`,
+    read from packet headers only, so it is fast even on a very large file."""
+    a = max(0.0, t - span) + start
     out = _run([ffprobe, "-v", "error", "-select_streams", "v:0", "-read_intervals", f"{a:.3f}%+{2 * span:.3f}",
                 "-show_entries", "packet=pts_time,dts_time,flags", "-of", "csv=p=0", path], timeout=120)
     times = []
@@ -236,18 +239,18 @@ def keyframes_near(ffprobe, path, t, span=6.0, stream=None):
         cols = line.split(",")
         if len(cols) >= 3 and "K" in cols[2]:
             try:
-                times.append(float(cols[0] if cols[0] not in ("N/A", "") else cols[1]))
+                times.append(float(cols[0] if cols[0] not in ("N/A", "") else cols[1]) - start)
             except ValueError:
                 pass
-    return sorted(set(round(x, 4) for x in times))
+    return sorted(set(round(x, 4) for x in times if x > -1e-3))
 
 
-def snap(ffprobe, path, t, direction="nearest", span=6.0):
+def snap(ffprobe, path, t, direction="nearest", span=6.0, start=0.0):
     """The keyframe time to cut at for a requested time: the nearest, the previous or the next.
     Returns (time, keyframes_seen)."""
-    ks = keyframes_near(ffprobe, path, t, span)
+    ks = keyframes_near(ffprobe, path, t, span, start)
     if not ks:
-        ks = keyframes_near(ffprobe, path, t, span * 4)
+        ks = keyframes_near(ffprobe, path, t, span * 4, start)
     if not ks:
         return t, []
     if direction == "prev":
@@ -312,10 +315,13 @@ def _progress_run(cmd, duration, progress, log):
         raise RuntimeError(err.strip().split("\n")[-1] if err.strip() else f"FFmpeg exit {p.returncode}")
 
 
-def count_frames(ffprobe, path, start, end):
-    """How many video packets present between two times (keyframe-aligned cut points). Reads only
-    that interval's packet headers."""
-    out = _run([ffprobe, "-v", "error", "-select_streams", "v:0", "-read_intervals", f"{start:.3f}%{end + 0.5:.3f}",
+def count_frames(ffprobe, path, start, end, offset=0.0):
+    """How many video packets present between two times (keyframe-aligned cut points, relative to
+    the stream start). Reads only that interval's packet headers."""
+    start, end = start + offset, end + offset
+    # the interval starts a second early: on a transport stream ffprobe's seek can land a packet
+    # or two past the keyframe, and the packets are filtered by timestamp below anyway
+    out = _run([ffprobe, "-v", "error", "-select_streams", "v:0", "-read_intervals", f"{max(0.0, start - 1.0):.3f}%{end + 0.5:.3f}",
                 "-show_entries", "packet=pts_time", "-of", "csv=p=0", path], timeout=300)
     n = 0
     for x in out.split():
@@ -333,7 +339,7 @@ def cut(ffmpeg, info, start, end, dst, progress=lambda pct: None, log=print, ffp
     fps = info["video"]["fps"] or 30.0
     length = max(1.0 / fps, end - start)
     probe_exe = ffprobe or (find_ffmpeg() or (None, None))[1]
-    frames = count_frames(probe_exe, info["path"], start, end) if probe_exe else int(round(length * fps))
+    frames = count_frames(probe_exe, info["path"], start, end, info.get("start", 0.0)) if probe_exe else int(round(length * fps))
     cmd = [ffmpeg, "-y", "-v", "error", "-ss", f"{start:.3f}", "-i", info["path"], "-t", f"{frames / fps:.4f}",
            "-frames:v", str(max(1, frames))] + _copy_args(info) + [dst]
     log(f"cut {os.path.basename(info['path'])} {start:.3f}s to {end:.3f}s -> {os.path.basename(dst)} (stream copy)")

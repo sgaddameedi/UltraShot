@@ -1,0 +1,343 @@
+// The video editor: a full-window panel for trimming, cutting and joining recordings without
+// re-encoding. Everything heavy happens in Python (hdrvideo); this file only draws the state,
+// drives the player and turns pointer and key input into in/out points and segments.
+window.VideoUI = (() => {
+  const $ = (s) => document.querySelector(s);
+  const fmt = (t, fps) => {
+    if (!isFinite(t) || t < 0) t = 0;
+    const m = Math.floor(t / 60), s = Math.floor(t % 60);
+    const frac = fps ? String(Math.round((t - Math.floor(t)) * fps)).padStart(fps > 99 ? 3 : 2, "0") : String(Math.floor((t % 1) * 100)).padStart(2, "0");
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}.${frac}`;
+  };
+  const fmtSize = (n) => n >= 1e9 ? (n / 1e9).toFixed(2) + " GB" : n >= 1e6 ? (n / 1e6).toFixed(0) + " MB" : (n / 1e3).toFixed(0) + " KB";
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  const V = {
+    open: false, videos: new Map(), order: [], cur: null, inT: 0, outT: 0, segs: [], sel: -1,
+    join: false, where: "beside", folder: "", name: "", keys: [], proxy: false, previewEnd: null,
+    stripFor: null, job: null, raf: 0, ff: null,
+  };
+  let P, api;
+
+  // ------------------------------------------------------------- panel
+  function isOpen() { return V.open; }
+  function open() {
+    if (!V.open) {
+      V.open = true;
+      $("#video").classList.remove("hidden");
+      api = window.pywebview.api;
+      api.video_state().then((st) => {
+        V.ff = st.ffmpeg; renderFF();
+        (st.videos || []).forEach(upsert);
+        if (st.job) { V.job = st.job; if (st.job.running) showProgress(st.job.pct, st.job.msg); else if (st.job.outputs?.length) renderResults(st.job); }
+        renderBin();
+        if (!V.cur && V.order.length) select(V.order[0]);
+      });
+    }
+  }
+  function close() {
+    V.open = false;
+    $("#video").classList.add("hidden");
+    P.pause();
+  }
+
+  // ------------------------------------------------------------- events from Python
+  function on(name, p) {
+    switch (name) {
+      case "video_open": open(); break;
+      case "video_file":
+        upsert(p); renderBin();
+        if (p.id === V.cur) {
+          if (p.status === "ready" && !V.videos.get(p.id)._loaded) select(p.id, true);
+          if (p.proxy_url && V.proxy && P.src !== p.proxy_url) { P.src = p.proxy_url; P.load(); $("#vStageMsg").textContent = ""; }
+        } else if (!V.cur && p.status === "ready") select(p.id);
+        break;
+      case "video_removed":
+        V.videos.delete(p); V.order = V.order.filter((i) => i !== p);
+        V.segs = V.segs.filter((s) => s.id !== p); renderSegs();
+        if (V.cur === p) { V.cur = null; P.removeAttribute("src"); P.load(); $("#vStageMsg").textContent = "Pick a recording"; $("#vStageChip").textContent = ""; $("#vStrip").innerHTML = ""; $("#vTicks").innerHTML = ""; if (V.order.length) select(V.order[0]); }
+        renderBin(); break;
+      case "video_progress":
+        if (p.kind === "export" || p.kind === "ffmpeg") showProgress(p.pct, p.msg);
+        else if (p.kind === "proxy" && p.id === V.cur) $("#vStageMsg").textContent = p.error ? p.msg : `${p.msg} ${Math.round(p.pct)}%`;
+        break;
+      case "video_done":
+        V.job = p; hideProgress(); renderResults(p); updateExportBtn();
+        if (p.error) toast(`Export failed: ${p.error}`, "err"); else toast(p.outputs.length === 1 ? "Exported 1 file" : `Exported ${p.outputs.length} files`, "ok");
+        break;
+      case "video_ffmpeg":
+        V.ff = p; renderFF(); hideProgress();
+        if (p.found) { toast("FFmpeg is ready", "ok"); V.order.forEach((id) => { const v = V.videos.get(id); if (v.status === "failed") api.video_add([v.path]).then(() => api.video_remove(id)); }); }
+        else toast(`FFmpeg: ${p.error || "not found"}`, "err");
+        break;
+    }
+  }
+  function upsert(p) {
+    const old = V.videos.get(p.id) || {};
+    V.videos.set(p.id, Object.assign(old, p));
+    if (!V.order.includes(p.id)) V.order.push(p.id);
+  }
+
+  function renderFF() {
+    const c = $("#vFfmpeg");
+    if (!V.ff || V.ff.found) { c.classList.add("hidden"); return; }
+    c.classList.remove("hidden");
+    c.innerHTML = "<b>FFmpeg missing</b> · Get FFmpeg";
+    c.title = "The editor needs FFmpeg. This downloads the gyan.dev essentials build (about 100 MB) into UltraShot's own folder, nothing else on the system changes.";
+  }
+
+  // ------------------------------------------------------------- clip bin
+  function renderBin() {
+    const list = $("#vBinList");
+    $("#vBinEmpty").classList.toggle("hidden", V.order.length > 0);
+    list.innerHTML = "";
+    for (const id of V.order) {
+      const v = V.videos.get(id);
+      const d = el("div", "v-clip" + (id === V.cur ? " on" : ""));
+      d.dataset.id = id;
+      const info = v.info;
+      const line = v.status === "probing" ? "reading…" : v.status === "failed" ? v.error : `${fmt(info.duration, 0)} · ${fmtSize(v.size)}`;
+      d.innerHTML = `<div class="th">${v.thumb ? `<img src="${v.thumb}" alt="">` : ""}</div>
+        <div><div class="nm" title="${esc(v.path)}">${esc(v.name)}</div><div class="dm${v.status === "failed" ? " err" : ""}" title="${esc(info ? info.summary : "")}">${esc(line)}</div>${info ? `<div class="dm">${esc(info.summary)}</div>` : ""}</div>
+        <button class="iconbtn small" title="Remove from the editor (the file stays on disk)"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`;
+      d.addEventListener("click", (e) => { if (e.target.closest("button")) { api.video_remove(id); return; } if (v.status === "ready") select(id); });
+      list.appendChild(d);
+    }
+  }
+
+  // ------------------------------------------------------------- player
+  function select(id, reload = false) {
+    const v = V.videos.get(id);
+    if (!v) return;
+    const changed = V.cur !== id;
+    V.cur = id; renderBin();
+    if (!v.info) { $("#vStageMsg").textContent = v.status === "failed" ? v.error : "reading the file…"; return; }
+    if (changed || reload) {
+      v._loaded = true;
+      V.proxy = false; V.previewEnd = null;
+      P.pause();
+      P.src = v.proxy_url || v.url; V.proxy = !!v.proxy_url;
+      P.load();
+      $("#vStageMsg").textContent = "";
+      V.inT = 0; V.outT = v.info.duration; V.keys = [];
+      renderStageChip(); layoutRange(); layoutPlayhead(0); renderTime(0);
+      loadStrip(id);
+      api.video_keyframes(id, 0, 8).then((ks) => { if (V.cur === id && Array.isArray(ks)) { V.keys = ks; renderTicks(); } });
+    }
+  }
+  function renderStageChip() {
+    const v = V.videos.get(V.cur); if (!v?.info) return;
+    $("#vStageChip").textContent = v.info.summary + (V.proxy ? " · SDR preview copy, the export is the original" : v.info.is_hdr ? " · preview only, the export keeps the HDR as recorded" : "");
+  }
+  function playerError() {
+    // the browser cannot decode this one: ask for a small SDR proxy and keep editing on it
+    const id = V.cur; const v = V.videos.get(id); if (!v || V.proxy) return;
+    V.proxy = true; renderStageChip();
+    $("#vStageMsg").textContent = "This codec has no decoder in the window. Building a small preview copy…";
+    api.video_proxy(id).then((r) => {
+      if (r.error) { $("#vStageMsg").textContent = `No preview: ${r.error}`; return; }
+      if (r.url) { P.src = r.url; P.load(); $("#vStageMsg").textContent = ""; }
+    });
+  }
+  function dur() { const v = V.videos.get(V.cur); return v?.info?.duration || P.duration || 0; }
+  function fps() { return V.videos.get(V.cur)?.info?.video?.fps || 0; }
+  function seek(t) { t = clamp(t, 0, dur()); P.currentTime = t; layoutPlayhead(t); renderTime(t); }
+  function togglePlay() { if (!V.cur) return; if (P.paused) { if (P.ended || P.currentTime >= dur() - 0.01) P.currentTime = 0; P.play(); } else P.pause(); }
+  function tick() {
+    const t = P.currentTime;
+    layoutPlayhead(t); renderTime(t);
+    if (V.previewEnd != null && t >= V.previewEnd) { P.pause(); seek(V.previewEnd); V.previewEnd = null; }
+    if (!P.paused) V.raf = requestAnimationFrame(tick);
+  }
+  function renderTime(t) { $("#vTime").textContent = `${fmt(t, fps())} / ${fmt(dur(), fps())}`; $("#vPlay").textContent = P.paused ? "▶" : "❚❚"; }
+
+  // ------------------------------------------------------------- timeline
+  function loadStrip(id) {
+    const tl = $("#vTimeline"); const n = Math.max(6, Math.min(40, Math.round(tl.clientWidth / 96)));
+    const strip = $("#vStrip"); strip.innerHTML = ""; for (let i = 0; i < n; i++) strip.appendChild(el("div"));
+    V.stripFor = id;
+    api.video_filmstrip(id, n, 240).then((frames) => {
+      if (V.stripFor !== id || !Array.isArray(frames)) return;
+      [...strip.children].forEach((d, i) => { if (frames[i]?.url) d.style.backgroundImage = `url(${frames[i].url})`; });
+    });
+  }
+  const x2t = (x) => { const r = $("#vTimeline").getBoundingClientRect(); return clamp((x - r.left) / r.width, 0, 1) * dur(); };
+  const t2pct = (t) => (dur() ? (t / dur()) * 100 : 0) + "%";
+  function layoutRange() { $("#vIn").style.left = t2pct(V.inT); $("#vOut").style.left = t2pct(V.outT); const r = $("#vRange"); r.style.left = t2pct(V.inT); r.style.width = t2pct(Math.max(0, V.outT - V.inT)); }
+  function layoutPlayhead(t) { $("#vPlayhead").style.left = t2pct(t); }
+  function renderTicks() { const tk = $("#vTicks"); tk.innerHTML = ""; const d = dur(); if (!d || V.keys.length < 2) return;
+    const px = $("#vTimeline").clientWidth / d; const gap = Math.min(...V.keys.slice(1).map((k, i) => k - V.keys[i]));
+    if (gap * px < 6) return;
+    for (const k of V.keys) { const i = document.createElement("i"); i.style.left = (k / d) * 100 + "%"; tk.appendChild(i); } }
+  async function setIn(t, snap = true) {
+    if (snap && V.cur) {
+      const r = await api.video_snap(V.cur, t, "nearest");
+      if (!r.error) { V.keys = r.keyframes || V.keys; renderTicks(); if (Math.abs(r.t - t) > 1e-3) $("#vSnapHint").textContent = `in point moved to the keyframe at ${fmt(r.t, fps())}`; else $("#vSnapHint").textContent = ""; t = r.t; }
+    }
+    V.inT = clamp(t, 0, dur()); if (V.outT <= V.inT) V.outT = Math.min(dur(), V.inT + 1 / (fps() || 30));
+    layoutRange(); updateAddBtn();
+  }
+  function setOut(t) { V.outT = clamp(t, 0, dur()); if (V.outT <= V.inT) V.inT = Math.max(0, V.outT - 1 / (fps() || 30)); layoutRange(); updateAddBtn(); }
+  function updateAddBtn() { $("#vAddSeg").disabled = !V.cur || V.outT - V.inT < 1e-3; }
+  function bindTimeline() {
+    const tl = $("#vTimeline");
+    let drag = null;
+    tl.addEventListener("pointerdown", (e) => {
+      if (!V.cur) return;
+      const h = e.target.closest(".v-handle");
+      drag = h ? (h.id === "vIn" ? "in" : "out") : "seek";
+      tl.setPointerCapture?.(e.pointerId);
+      move(e); e.preventDefault();
+    });
+    const move = (e) => {
+      if (!drag) return;
+      const t = x2t(e.clientX);
+      if (drag === "seek") seek(t);
+      else if (drag === "in") { V.inT = Math.min(t, V.outT); layoutRange(); seek(V.inT); }
+      else { V.outT = Math.max(t, V.inT); layoutRange(); seek(V.outT); }
+    };
+    tl.addEventListener("pointermove", move);
+    const up = () => { if (!drag) return; const d = drag; drag = null; if (d === "in") setIn(V.inT); else if (d === "out") setOut(V.outT); };
+    tl.addEventListener("pointerup", up); tl.addEventListener("pointercancel", up);
+    tl.addEventListener("dblclick", (e) => { e.preventDefault(); P.paused ? P.play() : P.pause(); });
+    new ResizeObserver(() => { if (V.cur && V.open) loadStripDebounced(); }).observe(tl);
+  }
+  let stripTimer = 0;
+  function loadStripDebounced() { clearTimeout(stripTimer); stripTimer = setTimeout(() => V.cur && loadStrip(V.cur), 400); }
+
+  // ------------------------------------------------------------- segments
+  function addSegment() {
+    if (!V.cur || V.outT - V.inT < 1e-3) return;
+    const v = V.videos.get(V.cur);
+    V.segs.push({ id: V.cur, start: V.inT, end: V.outT, name: v.name });
+    V.sel = V.segs.length - 1;
+    renderSegs(); toast(`Segment ${V.segs.length}: ${fmt(V.inT, fps())} to ${fmt(V.outT, fps())}`, "ok");
+  }
+  function renderSegs() {
+    const box = $("#vSegments"); box.innerHTML = "";
+    if (!V.segs.length) { box.appendChild(el("span", "empty", "No segments yet. Set in and out on the timeline, then Add segment. Segments export in this order.")); updateExportBtn(); return; }
+    V.segs.forEach((s, i) => {
+      const v = V.videos.get(s.id); const f = v?.info?.video?.fps || 0;
+      const d = el("div", "v-seg" + (i === V.sel ? " on" : ""));
+      d.title = `${s.name}\n${fmt(s.start, f)} to ${fmt(s.end, f)}. Click to preview, drag the chips to reorder.`;
+      d.innerHTML = `<b>${i + 1}</b><span>${esc(s.name.length > 22 ? s.name.slice(0, 20) + "…" : s.name)}</span><span class="dm">${fmt(s.start, f)} → ${fmt(s.end, f)}</span>
+        <span class="mv" title="Move earlier">‹</span><span class="mv" title="Move later">›</span><span class="rm" title="Remove segment">✕</span>`;
+      const [left, right] = d.querySelectorAll(".mv"); const rm = d.querySelector(".rm");
+      left.addEventListener("click", (e) => { e.stopPropagation(); if (i > 0) { [V.segs[i - 1], V.segs[i]] = [V.segs[i], V.segs[i - 1]]; V.sel = i - 1; renderSegs(); } });
+      right.addEventListener("click", (e) => { e.stopPropagation(); if (i < V.segs.length - 1) { [V.segs[i + 1], V.segs[i]] = [V.segs[i], V.segs[i + 1]]; V.sel = i + 1; renderSegs(); } });
+      rm.addEventListener("click", (e) => { e.stopPropagation(); V.segs.splice(i, 1); V.sel = Math.min(V.sel, V.segs.length - 1); renderSegs(); });
+      d.addEventListener("click", () => previewSeg(i));
+      box.appendChild(d);
+    });
+    const total = V.segs.reduce((a, s) => a + s.end - s.start, 0);
+    box.appendChild(el("span", "v-total", `${V.segs.length} segment${V.segs.length > 1 ? "s" : ""} · ${fmt(total, 0)} total`));
+    updateExportBtn();
+  }
+  function previewSeg(i) {
+    const s = V.segs[i]; if (!s) return;
+    V.sel = i; renderSegs();
+    if (V.cur !== s.id) select(s.id);
+    V.inT = s.start; V.outT = s.end; layoutRange(); updateAddBtn();
+    const go = () => { seek(s.start); V.previewEnd = s.end; P.play(); };
+    if (P.readyState >= 1) go(); else P.addEventListener("loadedmetadata", go, { once: true });
+  }
+
+  // ------------------------------------------------------------- export
+  function updateExportBtn() {
+    const running = V.job?.running;
+    $("#vExport").disabled = running || !V.segs.length || !(V.ff?.found ?? true);
+    $("#vExport").textContent = running ? "Exporting…" : V.join && V.segs.length > 1 ? `Export 1 joined file` : `Export ${V.segs.length || ""} file${V.segs.length === 1 ? "" : "s"}`.replace("  ", " ");
+    $("#vNameRow").classList.toggle("hidden", !(V.join && V.segs.length > 1));
+  }
+  async function doExport() {
+    if (!V.segs.length) return;
+    const segs = V.segs.map((s) => ({ id: s.id, start: s.start, end: s.end }));
+    $("#vResults").innerHTML = "";
+    showProgress(0, "starting");
+    const r = await api.video_export(segs, V.join && V.segs.length > 1, V.where === "folder" ? V.folder : "", $("#vName").value.trim());
+    if (r.error) { hideProgress(); toast(`Export: ${r.error}`, "err"); return; }
+    V.job = r; updateExportBtn();
+  }
+  function showProgress(pct, msg) { $("#vProgress").classList.remove("hidden"); $("#vFill").style.width = clamp(pct, 0, 100) + "%"; $("#vPmsg").textContent = msg || ""; updateExportBtn(); }
+  function hideProgress() { $("#vProgress").classList.add("hidden"); }
+  function renderResults(job) {
+    const box = $("#vResults"); box.innerHTML = "";
+    if (job.error) { box.appendChild(el("div", "v-result", `<div class="nm bad">Export failed</div><div>${esc(job.error)}</div>`)); return; }
+    for (const rep of job.verify || []) {
+      const d = el("div", "v-result");
+      const rows = (rep.rows || []).map((r) => `<tr><td>${esc(r.label)}</td><td class="${r.ok ? "" : "diff"}">${esc(r.ok ? r.output : `${r.output} (source: ${r.source})`)}</td></tr>`).join("");
+      d.innerHTML = `<div class="nm">${esc(rep.output.split(/[\\/]/).pop())}</div>
+        <div class="${rep.all_ok ? "ok" : "bad"}">${rep.all_ok ? "✓ matches the source: " : "⚠ differences from the source: "}${esc(rep.summary)} · ${fmt(rep.duration, 0)} · ${fmtSize(rep.size)}</div>
+        <table>${rows}</table>
+        <div class="acts"><button class="ghost tiny" data-open>Open</button><button class="ghost tiny" data-reveal>Show in folder</button><button class="ghost tiny" data-add>Add to editor</button></div>`;
+      d.querySelector("[data-open]").addEventListener("click", () => api.open_path(rep.output));
+      d.querySelector("[data-reveal]").addEventListener("click", () => api.reveal(rep.output));
+      d.querySelector("[data-add]").addEventListener("click", () => api.video_add([rep.output]));
+      box.appendChild(d);
+    }
+  }
+
+  // ------------------------------------------------------------- keys
+  function key(e) {
+    const inInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
+    if (e.key === "Escape") { if (inInput) { e.target.blur(); return true; } close(); return true; }
+    if (inInput) return false;
+    const f = fps() || 30, step = e.shiftKey ? 1 : 1 / f;
+    switch (e.key) {
+      case " ": togglePlay(); return true;
+      case "i": case "I": setIn(P.currentTime); return true;
+      case "o": case "O": setOut(P.currentTime); return true;
+      case "Enter": addSegment(); return true;
+      case "ArrowLeft": P.pause(); seek(P.currentTime - step); return true;
+      case "ArrowRight": P.pause(); seek(P.currentTime + step); return true;
+      case "Home": seek(0); return true;
+      case "End": seek(dur()); return true;
+      case "[": jumpKey("prev"); return true;
+      case "]": jumpKey("next"); return true;
+      case "Delete": case "Backspace": if (V.sel >= 0 && V.segs[V.sel]) { V.segs.splice(V.sel, 1); V.sel = Math.min(V.sel, V.segs.length - 1); renderSegs(); } return true;
+    }
+    return false;
+  }
+  async function jumpKey(dir) {
+    if (!V.cur) return; P.pause();
+    const t = P.currentTime + (dir === "next" ? 0.02 : -0.02);
+    const r = await api.video_snap(V.cur, t, dir);
+    if (!r.error) { V.keys = r.keyframes || V.keys; renderTicks(); seek(r.t); }
+  }
+
+  // ------------------------------------------------------------- wiring
+  function toast(msg, kind) { if (window.toast) window.toast(msg, kind); }
+  function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  document.addEventListener("DOMContentLoaded", () => {
+    P = $("#vPlayer");
+    P.addEventListener("error", playerError);
+    P.addEventListener("play", () => { cancelAnimationFrame(V.raf); V.raf = requestAnimationFrame(tick); renderTime(P.currentTime); });
+    P.addEventListener("pause", () => { cancelAnimationFrame(V.raf); renderTime(P.currentTime); });
+    P.addEventListener("ended", () => renderTime(P.currentTime));
+    P.addEventListener("loadedmetadata", () => { if (!V.proxy && isFinite(P.duration) && P.duration > 0) { const v = V.videos.get(V.cur); if (v?.info && Math.abs(v.info.duration - P.duration) > 1) { /* keep ffprobe's duration: the player's is the container's */ } } renderTime(0); });
+    P.addEventListener("click", togglePlay);
+    $("#vClose").addEventListener("click", close);
+    $("#vAdd").addEventListener("click", () => api.video_pick());
+    $("#vPlay").addEventListener("click", togglePlay);
+    $("#vPrevKey").addEventListener("click", () => jumpKey("prev"));
+    $("#vNextKey").addEventListener("click", () => jumpKey("next"));
+    $("#vSetIn").addEventListener("click", () => setIn(P.currentTime));
+    $("#vSetOut").addEventListener("click", () => setOut(P.currentTime));
+    $("#vAddSeg").addEventListener("click", addSegment);
+    $("#vExport").addEventListener("click", doExport);
+    $("#vJoin").addEventListener("click", () => { V.join = !V.join; $("#vJoin").classList.toggle("on", V.join); updateExportBtn(); });
+    $("#vWhere").addEventListener("click", async (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      if (b.dataset.v === "folder") { const f = await api.video_pick_folder(); if (!f) return; V.folder = f; }
+      V.where = b.dataset.v; [...$("#vWhere").children].forEach((x) => x.classList.toggle("on", x === b));
+      $("#vFolder").textContent = V.where === "folder" ? V.folder : "";
+    });
+    $("#vFfmpeg").addEventListener("click", () => { showProgress(0, "downloading FFmpeg"); api.ffmpeg_install(); });
+    bindTimeline();
+    renderSegs();
+  });
+
+  return { open, close, isOpen, on, key };
+})();

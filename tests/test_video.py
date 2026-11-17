@@ -90,3 +90,23 @@ def test_sdr_clip_is_reported_as_sdr(tmp_path):
     V.make_test_clip(FF[0], p, seconds=2, hdr=False)
     info = V.probe(FF[1], p)
     assert not info["is_hdr"] and info["video"]["bit_depth"] == 8
+
+
+def test_transport_stream_times_are_relative_to_its_start(clip, tmp_path):
+    """A transport stream's clock starts at about 1.4 s. The editor's times are relative to the
+    stream start, so the player, the keyframes and the cuts all agree, and a cut of a .ts holds
+    the same frames as the same cut of the .mp4 it came from."""
+    ts = str(tmp_path / "same.ts")
+    subprocess.run([FF[0], "-y", "-v", "error", "-i", clip, "-c", "copy", "-f", "mpegts", ts], check=True, creationflags=V.CREATE_NO_WINDOW, timeout=120)
+    info = V.probe(FF[1], ts)
+    assert info["start"] > 1.0 and info["container"] == "mpegts"
+    ks = V.keyframes_near(FF[1], ts, 3.0, 3.0, info["start"])
+    assert any(abs(k - 2.0) < 0.02 for k in ks) and any(abs(k - 3.0) < 0.02 for k in ks)
+    t, _ = V.snap(FF[1], ts, 2.4, "nearest", start=info["start"]); assert abs(t - 2.0) < 0.02
+    out = str(tmp_path / "ts-cut.mp4")
+    V.cut(FF[0], info, t, 4.0, out, log=lambda m: None, ffprobe=FF[1])
+    assert abs(V.video_length(out) - 2.0) < 0.05
+    src = V.probe(FF[1], clip)
+    ref = str(tmp_path / "mp4-cut.mp4")
+    V.cut(FF[0], src, 2.0, 4.0, ref, log=lambda m: None, ffprobe=FF[1])
+    assert raw_frame(out, 0.0) == raw_frame(ref, 0.0) and raw_frame(out, 1.5) == raw_frame(ref, 1.5)

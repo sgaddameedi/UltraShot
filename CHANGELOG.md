@@ -6,7 +6,15 @@ All notable changes to UltraShot are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+- A video editor for HDR recordings. Recordings from the NVIDIA App, OBS, the Game Bar, a capture
+  card or a phone can be trimmed, cut into segments and joined without re-encoding: in points snap
+  to keyframes, the packets are copied as they are, and the codec, bit depth, colour tags, HDR
+  metadata, Dolby Vision configuration and audio of the export are read back and compared with the
+  source after every export. Recordings stream from disk into the window's own player, so very
+  large files open at once; a file the window cannot decode gets a small preview copy in a local
+  cache that is capped at six gigabytes. The editor opens from the toolbar or when a recording is
+  dropped on the window, and uses FFmpeg, which it can fetch itself when none is installed.
 
 ## [1.2.1] - 2026-11-14
 

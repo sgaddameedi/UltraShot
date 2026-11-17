@@ -68,6 +68,8 @@ window.app = {
       case "removed": S.files.delete(p); S.order = S.order.filter((i) => i !== p); if (S.selected === p) closeInspector(); renderGrid(); updateProgress(); break;
       case "cleared": { const keep = new Set(p); for (const id of [...S.files.keys()]) if (!keep.has(id)) S.files.delete(id); S.order = S.order.filter((i) => keep.has(i)); closeInspector(); S.batch = null; renderGrid(); updateProgress(); break; }
       case "log": appendLog(p.t, p.msg); break;
+      case "video_file": case "video_removed": case "video_progress": case "video_done": case "video_ffmpeg": case "video_open":
+        if (window.VideoUI) VideoUI.on(name, p); break;
       case "toast": toast(p.msg, p.kind); break;
       case "watch": S.watching = p.on; S.settings.watch = p.on; renderWatch(); renderSettings(); break;
       case "settings": S.settings = p; renderChips(); renderWatch(); renderSettings(); renderInspectorControls(); break;
@@ -895,6 +897,7 @@ function bindUI() {
   $("#btnSettings").addEventListener("click", () => $("#settings").classList.contains("open") ? closeSettings() : openSettings());
   $("#settingsBack").addEventListener("click", closeSettings);
   $("#btnLog").addEventListener("click", toggleLog);
+  $("#btnVideo").addEventListener("click", () => VideoUI.open());
   $("#btnLogClose").addEventListener("click", closeLog);
   $("#btnLogClear").addEventListener("click", () => { $("#logbody").innerHTML = ""; });
   $("#watchPill").addEventListener("click", () => S.api.set_watch(!S.watching));
@@ -996,6 +999,7 @@ function bindUI() {
     const lbOpen = !$("#lightbox").classList.contains("hidden");
     if (lbOpen && e.key === "ArrowLeft") { stepLightbox(-1); return; }
     if (lbOpen && e.key === "ArrowRight") { stepLightbox(1); return; }
+    if (window.VideoUI && VideoUI.isOpen()) { if (VideoUI.key(e)) { e.preventDefault(); } return; }
     if (e.key === "Escape") { if (lbOpen) closeLightbox(); else if ($("#settings").classList.contains("open")) closeSettings(); else if ($("#logdrawer").classList.contains("open")) closeLog(); else if (!$("#popover").classList.contains("hidden")) $("#popover").classList.add("hidden"); else closeInspector(); }
     if (e.key === "Enter" && !e.ctrlKey && S.selected && document.activeElement.tagName !== "INPUT" && !lbOpen) openResult(S.selected);
     if (e.key === "Delete" && S.selected && document.activeElement.tagName !== "INPUT") S.api.remove(S.selected);

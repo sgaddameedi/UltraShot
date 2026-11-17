@@ -277,6 +277,20 @@ a shortcut in the Startup folder launches the application hidden at sign-in. The
 include subfolders, which matters for NVIDIA App captures because the NVIDIA App keeps a separate
 subfolder for each game. Notifications announce finished conversions while the window is hidden.
 
+### Trimming and joining HDR recordings
+
+The film-strip button in the toolbar opens a video editor for the recordings that the NVIDIA App,
+OBS, the Game Bar, a capture card or a phone write, and dropping a recording on the window opens it
+too. Recordings are trimmed, cut into segments and joined without re-encoding: in points snap to
+keyframes, the packets between in and out are copied as they are, and the export is read back and
+compared with its source so that the codec, the 10-bit samples, the BT.2020 and PQ or HLG tags, the
+mastering display and content light metadata, a Dolby Vision configuration and the audio are known
+to have survived. The player streams the file from disk, so a fifty gigabyte recording opens at
+once, and a file the window cannot decode gets a small preview copy in a size-capped local cache
+while the export still comes from the original. The editor is built on FFmpeg, which it can fetch
+itself when none is installed. [docs/video.md](docs/video.md) explains how a keyframe cut works and
+describes the editor.
+
 ## Supported HDR screenshot formats
 
 | Capture tool | File | Contents | Notes |
@@ -393,7 +407,8 @@ Further questions and failure modes are covered in [docs/troubleshooting.md](doc
 UltraShot is in regular use and the conversion path is covered by tests, but it is a young project
 maintained by one person, and reports from other games, capture tools and phones are the most useful
 contribution it can receive. The roadmap, in rough order of priority, is an HDR preview inside the
-application, AVIF and HDR PNG outputs for platforms that prefer them, OpenEXR and Radiance HDR input,
+application, frame-accurate video cuts that re-encode only the frames before the first keyframe,
+AVIF and HDR PNG outputs for platforms that prefer them, OpenEXR and Radiance HDR input,
 and macOS and Linux versions of the application shell, since the engine already runs wherever its
 dependencies do.
 

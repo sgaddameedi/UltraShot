@@ -39,6 +39,8 @@ PACKAGED = (FROZEN and os.path.exists(os.path.join(os.path.dirname(sys.executabl
 HERE = sys._MEIPASS if FROZEN else os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import jxl2uhdr  # noqa: E402
+import hdrvideo  # noqa: E402
+from videoedit import VideoSession  # noqa: E402
 
 ic = jxl2uhdr.ic
 SDR_WHITE_NITS = jxl2uhdr.SDR_WHITE_NITS
@@ -350,6 +352,7 @@ class App:
         self.convert_q = queue.Queue()
         self.thumb_q = queue.Queue()
         self.pending_external = []
+        self.video = VideoSession(self)          # recordings opened in the video editor
         self._dirty = threading.Event()          # the file list changed and session.json is stale
         self._restored = threading.Event()       # the previous session has been loaded (or skipped)
         self._state_served = False
@@ -984,10 +987,15 @@ class App:
     def on_drop(self, e):
         files = (e or {}).get("dataTransfer", {}).get("files", []) or []
         paths = [f.get("pywebviewFullPath") for f in files if f.get("pywebviewFullPath")]
-        if paths:
-            if not self.add_paths(paths):
+        videos = [p for p in paths if p.lower().endswith(hdrvideo.VIDEO_EXTS)]
+        if videos:
+            self.video.add_paths(videos)
+            self.emit("video_open")
+        rest = [p for p in paths if p not in videos]
+        if rest:
+            if not self.add_paths(rest) and not videos:
                 self.toast("Nothing new: only .jxl and .jxr files are converted", "warn")
-        else:
+        elif not videos:
             self.toast("Drop .jxl or .jxr files, or folders", "warn")
 
     def on_closing(self):
@@ -1030,6 +1038,7 @@ class App:
     def shutdown(self):
         self.quitting = True
         self._watch_stop.set()
+        self.video.close()
         if self._restored.is_set():
             self._write_session()        # whatever the debounce has not flushed yet
         if self.tray:
@@ -1263,6 +1272,68 @@ class Api:
             return os.path.dirname(t[0][1]) if t else os.path.dirname(f["path"])
         s = app.settings
         return s["save_dir"] if (s["save_mode"] == "folder" and s["save_dir"]) else s["watch_dir"]
+
+    # ---- video editor
+    def video_state(self):
+        return self._app.video.state()
+
+    def video_pick(self):
+        res = self._app.window.create_file_dialog(
+            self._dialog(), allow_multiple=True,
+            file_types=("Video recordings (*.mp4;*.mkv;*.mov;*.m4v;*.ts;*.m2ts;*.mts;*.webm)", "All files (*.*)"))
+        return self._app.video.add_paths(list(res or []))
+
+    def video_add(self, paths):
+        return self._app.video.add_paths(list(paths or []))
+
+    def video_remove(self, vid):
+        return self._app.video.remove(vid)
+
+    def video_frame(self, vid, t, width=640):
+        try:
+            return self._app.video.frame(vid, t, width)
+        except Exception as e:
+            return {"error": str(e)}
+
+    def video_filmstrip(self, vid, count=12, width=320):
+        try:
+            return self._app.video.filmstrip(vid, count, width)
+        except Exception as e:
+            return {"error": str(e)}
+
+    def video_keyframes(self, vid, t, span=6.0):
+        try:
+            return self._app.video.keyframes(vid, t, span)
+        except Exception as e:
+            return {"error": str(e)}
+
+    def video_snap(self, vid, t, direction="nearest"):
+        try:
+            return self._app.video.snap(vid, t, direction)
+        except Exception as e:
+            return {"error": str(e)}
+
+    def video_proxy(self, vid):
+        try:
+            return self._app.video.proxy(vid)
+        except Exception as e:
+            return {"error": str(e)}
+
+    def video_export(self, segments, join=False, out_dir="", name=""):
+        try:
+            return self._app.video.export(segments or [], bool(join), out_dir or "", name or "")
+        except Exception as e:
+            return {"error": str(e)}
+
+    def video_pick_folder(self):
+        res = self._app.window.create_file_dialog(self._dialog(folder=True))
+        return (res[0] if isinstance(res, (list, tuple)) and res else res) or None
+
+    def ffmpeg_status(self):
+        return self._app.video.ffmpeg_status()
+
+    def ffmpeg_install(self):
+        return self._app.video.ffmpeg_install()
 
     def hide(self):
         self._app.hide_window()

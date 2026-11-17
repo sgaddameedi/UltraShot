@@ -14,5 +14,5 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements-dev.txt
-      - run: python -m py_compile ultrashot.py jxl2uhdr.py tools/watch_cli.py
+      - run: python -m py_compile ultrashot.py jxl2uhdr.py hdrvideo.py videoedit.py mediaserver.py tools/watch_cli.py
       - run: pytest -q

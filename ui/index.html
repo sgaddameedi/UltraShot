@@ -25,6 +25,9 @@
     <button id="watchPill" class="pill" title="Toggle the watch folder">
       <span class="dot"></span><span id="watchText">Watch folder off</span>
     </button>
+    <button class="iconbtn" id="btnVideo" title="Video: trim, cut and join recordings without re-encoding">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M3 14h18M8 5v14M16 5v14"/></svg>
+    </button>
     <button class="iconbtn" id="btnLog" title="Log">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9l3 3-3 3M13 15h4"/></svg>
     </button>
@@ -192,10 +195,67 @@
     <div class="lb-infobody" id="lbInfoBody"></div>
   </aside>
 </div>
+<div id="video" class="video hidden" role="dialog" aria-label="Video editor">
+  <div class="v-top">
+    <div class="v-title">Video <span class="v-sub">trim, cut and join recordings. Nothing is re-encoded: the picture, the HDR metadata and the audio come through untouched.</span></div>
+    <div class="v-actions">
+      <span class="chip v-ff hidden" id="vFfmpeg"></span>
+      <button class="ghost" id="vAdd">Add recordings</button>
+      <button class="iconbtn small" id="vClose" title="Close (Esc)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+  </div>
+  <div class="v-body">
+    <aside class="v-bin" id="vBin">
+      <div class="v-bin-empty" id="vBinEmpty">Drop recordings here, or use Add recordings.<br><small>MP4, MKV, MOV, M2TS and WebM from the NVIDIA App, OBS, Game Bar, a capture card or a phone.</small></div>
+      <div class="v-bin-list" id="vBinList"></div>
+    </aside>
+    <section class="v-main">
+      <div class="v-stage" id="vStage">
+        <video id="vPlayer" preload="metadata" playsinline></video>
+        <div class="v-stage-msg" id="vStageMsg">Pick a recording</div>
+        <div class="v-stage-chip" id="vStageChip"></div>
+      </div>
+      <div class="v-transport">
+        <div class="v-tgroup">
+          <button class="ghost tiny" id="vPrevKey" title="Previous keyframe ( [ )">⏮</button>
+          <button class="ghost tiny v-play" id="vPlay" title="Play / pause (Space)">▶</button>
+          <button class="ghost tiny" id="vNextKey" title="Next keyframe ( ] )">⏭</button>
+          <span class="v-time" id="vTime">00:00.00 / 00:00.00</span>
+        </div>
+        <div class="v-tgroup">
+          <button class="ghost tiny" id="vSetIn" title="Set the in point at the playhead (I)">Set in</button>
+          <button class="ghost tiny" id="vSetOut" title="Set the out point at the playhead (O)">Set out</button>
+          <button class="ghost tiny" id="vAddSeg" title="Keep the part between in and out (Enter)">Add segment</button>
+          <span class="v-hint" id="vSnapHint"></span>
+        </div>
+      </div>
+      <div class="v-timeline" id="vTimeline">
+        <div class="v-strip" id="vStrip"></div>
+        <div class="v-range" id="vRange"></div>
+        <div class="v-ticks" id="vTicks"></div>
+        <div class="v-handle v-in" id="vIn" title="In point: drag, snaps to a keyframe"></div>
+        <div class="v-handle v-out" id="vOut" title="Out point: drag, snaps to a keyframe"></div>
+        <div class="v-playhead" id="vPlayhead"></div>
+      </div>
+      <div class="v-segments" id="vSegments"></div>
+    </section>
+    <aside class="v-export">
+      <div class="v-exp-head">Export</div>
+      <label class="v-row"><span>Join segments into one file</span><span class="switch" id="vJoin"></span></label>
+      <div class="v-row v-col"><span>Save to</span><div class="seg mini" id="vWhere"><button data-v="beside" class="on">Next to the recording</button><button data-v="folder">Folder…</button></div><div class="v-folder" id="vFolder"></div></div>
+      <div class="v-row v-col hidden" id="vNameRow"><span>File name</span><input type="text" class="text" id="vName" placeholder="joined" spellcheck="false"></div>
+      <div class="v-keep">Cuts land on keyframes, so the frames are copied as they are: codec, 10-bit, BT.2020, PQ or HLG, mastering display and content light metadata, Dolby Vision and the audio all stay exactly as recorded. Every export is read back and checked against the source.</div>
+      <button class="primary" id="vExport" disabled>Export</button>
+      <div class="v-progress hidden" id="vProgress"><div class="bar"><div class="fill" id="vFill"></div></div><div class="v-pmsg" id="vPmsg"></div></div>
+      <div class="v-results" id="vResults"></div>
+    </aside>
+  </div>
+</div>
 <div id="dragover" class="dragover"><div class="dragbox"><div class="dz-icon big">+</div><div>Drop to add</div></div></div>
 <div id="popover" class="popover hidden"></div>
 <div id="toasts"></div>
 
 <script src="app.js"></script>
+<script src="video.js"></script>
 </body>
 </html>
