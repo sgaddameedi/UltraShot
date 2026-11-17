@@ -131,6 +131,8 @@ input.tc:focus { border-color: var(--accent); }
 .v-playhead::before { content: ""; position: absolute; top: 0; left: -5px; border: 6px solid transparent; border-top: 8px solid #fff; }
 .v-cursor { position: absolute; top: 4px; transform: translateX(-50%); font-size: 10.5px; padding: 2px 6px; border-radius: 6px; background: rgba(0,0,0,.75); color: #fff; pointer-events: none; display: none; font-variant-numeric: tabular-nums; z-index: 4; }
 .v-timeline:hover .v-cursor { display: block; }
+.v-timeline.tight .v-in span { top: auto; bottom: 0; border-radius: 0 4px 0 0; }
+.v-timeline.tight .v-out { z-index: 3; }
 .v-timeline.idle { cursor: default; }
 .v-timeline.idle .v-handle, .v-timeline.idle .v-playhead, .v-timeline.idle .v-cursor, .v-timeline.idle .v-shade { display: none; }
 .v-transport button, .v-marks button { white-space: nowrap; }

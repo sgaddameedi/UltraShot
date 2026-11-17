@@ -204,6 +204,8 @@ window.VideoUI = (() => {
   const t2pct = (t) => (dur() ? (t / dur()) * 100 : 0) + "%";
   function layoutRange() {
     $("#vIn").style.left = t2pct(V.inT); $("#vOut").style.left = t2pct(V.outT);
+    const tl = $("#vTimeline"), d0 = dur();
+    tl.classList.toggle("tight", d0 > 0 && (V.outT - V.inT) / d0 * tl.clientWidth < 44);
     $("#vShadeL").style.width = t2pct(V.inT); $("#vShadeR").style.width = t2pct(Math.max(0, dur() - V.outT));
     const f = fps();
     $("#vInTc").value = tc(V.inT, f); $("#vOutTc").value = tc(V.outT, f);
