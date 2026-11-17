@@ -47,7 +47,7 @@ SDR_WHITE_NITS = jxl2uhdr.SDR_WHITE_NITS
 
 APP_NAME = "UltraShot"
 APP_ID = "UltraShot"
-VERSION = "1.2.1"
+VERSION = "1.3.0"
 UI_DIR = os.path.join(HERE, "ui")
 ICON_PNG = os.path.join(UI_DIR, "ultrashot.png")
 APPDATA = os.environ.get("APPDATA") or os.path.expanduser("~")
