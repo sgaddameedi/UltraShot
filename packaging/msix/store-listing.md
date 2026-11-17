@@ -138,17 +138,17 @@ scales down for smaller placements. Slots the dashboard does not show can be ign
 - Voice title: `Ultra Shot`
 - Short description. The Store shows only the first line or two of this field on tiles and in search
   results, so the core function must come first and each version must read as a complete thought.
-  Primary, 213 characters:
+  Primary, 208 characters:
 
-  > Converts HDR game screenshots from ReShade, the NVIDIA App and Game Bar into Ultra HDR JPEGs: ordinary JPEGs with a gain map that stay HDR on Instagram, Google Photos, Chrome and phones, and look right on any screen.
+  > Turns HDR game screenshots from ReShade, the NVIDIA App and Game Bar into Ultra HDR JPEGs that stay HDR on Instagram, Google Photos, Chrome and phones, and cuts HDR recordings losslessly for Shorts and Reels.
 
-  If that is clipped where you look at it, 162 characters:
+  If that is clipped where you look at it, 154 characters:
 
-  > Converts ReShade and NVIDIA / Game Bar HDR screenshots into Ultra HDR JPEGs that stay HDR on Instagram, Google Photos, Chrome and phones, and look right everywhere.
+  > Converts HDR game screenshots into Ultra HDR JPEGs that stay HDR on Instagram, Chrome and phones, and cuts HDR recordings losslessly for Shorts and Reels.
 
-  And for a single tile line, 95 characters:
+  And for a single tile line, 87 characters:
 
-  > Turn HDR game screenshots into Ultra HDR JPEGs that stay HDR on Instagram, phones and the web.
+  > Ultra HDR JPEGs from HDR screenshots, and lossless HDR video cuts for Shorts and Reels.
 
 - Search terms (up to seven, each under 30 characters): `HDR screenshot`, `Ultra HDR`, `gain map`, `Instagram HDR`, `ReShade JXL`, `HDR video trim`, `Shorts HDR`
 - Copyright and trademark info: `© 2026 Sharath Gaddameedi. Released under the MIT licence.`
