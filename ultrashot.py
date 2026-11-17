@@ -296,6 +296,27 @@ def set_explorer_menu(enabled):
 
 # ----------------------------------------------------------------------------- single instance
 
+def free_http_port():
+    """A loopback port nothing is listening on, for the page server. pywebview would otherwise use
+    one fixed port, and Windows lets a second process bind it, so a second UltraShot (the Store
+    app beside a source build, or --new-instance) would load the first one's page."""
+    import random
+    for _ in range(100):
+        port = random.randint(20000, 60000)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            probe.settimeout(0.2)
+            if probe.connect_ex(("127.0.0.1", port)) == 0:
+                continue                 # something answers there already
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.setsockopt(socket.SOL_SOCKET, getattr(socket, "SO_EXCLUSIVEADDRUSE", socket.SO_REUSEADDR), 1)
+                s.bind(("127.0.0.1", port))
+                return port
+            except OSError:
+                continue
+    return None
+
+
 def send_to_running_instance(paths, show=True):
     """True if another UltraShot is running and took over the request."""
     try:
@@ -1395,7 +1416,7 @@ def main():
 
     window.events.loaded += on_loaded
     app.make_tray()
-    webview.start(private_mode=False, storage_path=SETTINGS_DIR, debug="--debug" in args)
+    webview.start(private_mode=False, storage_path=SETTINGS_DIR, debug="--debug" in args, http_port=free_http_port())
     app.shutdown()
 
 
