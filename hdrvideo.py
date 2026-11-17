@@ -315,20 +315,32 @@ def _progress_run(cmd, duration, progress, log):
         raise RuntimeError(err.strip().split("\n")[-1] if err.strip() else f"FFmpeg exit {p.returncode}")
 
 
-def count_frames(ffprobe, path, start, end, offset=0.0):
-    """How many video packets present between two times (keyframe-aligned cut points, relative to
-    the stream start). Reads only that interval's packet headers."""
-    start, end = start + offset, end + offset
-    # the interval starts a second early: on a transport stream ffprobe's seek can land a packet
-    # or two past the keyframe, and the packets are filtered by timestamp below anyway
-    out = _run([ffprobe, "-v", "error", "-select_streams", "v:0", "-read_intervals", f"{max(0.0, start - 1.0):.3f}%{end + 0.5:.3f}",
+def count_packets(ffprobe, path, start, end, offset=0.0, stream="v:0"):
+    """The packet timestamps of one stream between two times (relative to the stream start), in
+    file order, read from packet headers only. The interval starts a second early because on a
+    transport stream ffprobe's seek can land a packet or two past the keyframe."""
+    a, b = start + offset, end + offset
+    out = _run([ffprobe, "-v", "error", "-select_streams", stream, "-read_intervals", f"{max(0.0, a - 1.0):.3f}%{b + 0.5:.3f}",
                 "-show_entries", "packet=pts_time", "-of", "csv=p=0", path], timeout=300)
-    n = 0
+    pts = []
     for x in out.split():
         x = x.strip().rstrip(",")
-        if x and x != "N/A" and start - 1e-3 <= float(x) < end - 1e-3:
-            n += 1
-    return n
+        if x and x != "N/A":
+            pts.append(float(x) - offset)
+    return pts
+
+
+def count_frames(ffprobe, path, start, end, offset=0.0):
+    """How many video packets to copy from the keyframe at `start` so that every frame before `end`
+    is present. Packets are counted in file (decode) order: with B-frames the last frames before
+    the out point are stored after one or two frames that belong past it, so those come along
+    rather than leaving a gap; without B-frames this is exactly the frames between the two times."""
+    pts = count_packets(ffprobe, path, start, end, offset, "v:0")
+    first = next((i for i, t in enumerate(pts) if t >= start - 1e-3), None)
+    if first is None:
+        return 0
+    last = max((i for i, t in enumerate(pts) if t < end - 1e-3), default=first - 1)
+    return max(0, last - first + 1)
 
 
 def cut(ffmpeg, info, start, end, dst, progress=lambda pct: None, log=print, ffprobe=None):
@@ -339,12 +351,50 @@ def cut(ffmpeg, info, start, end, dst, progress=lambda pct: None, log=print, ffp
     fps = info["video"]["fps"] or 30.0
     length = max(1.0 / fps, end - start)
     probe_exe = ffprobe or (find_ffmpeg() or (None, None))[1]
-    frames = count_frames(probe_exe, info["path"], start, end, info.get("start", 0.0)) if probe_exe else int(round(length * fps))
-    cmd = [ffmpeg, "-y", "-v", "error", "-ss", f"{start:.3f}", "-i", info["path"], "-t", f"{frames / fps:.4f}",
-           "-frames:v", str(max(1, frames))] + _copy_args(info) + [dst]
+    offset = info.get("start", 0.0)
+    frames = count_frames(probe_exe, info["path"], start, end, offset) if probe_exe else int(round(length * fps))
+    # FFmpeg seeks to the last keyframe at or before the target, and a target that sits exactly on
+    # the keyframe can land on the one before it (the stream's start time and the timebase do not
+    # round the same way), which copies a whole extra group of frames with negative timestamps that
+    # players skip. So the seek aims a little way past the keyframe, less than half a group so it
+    # cannot reach the next one, and the timestamps are shifted back by the same amount.
+    delta = 0.3
+    if probe_exe:
+        try:
+            nxt = [k for k in keyframes_near(probe_exe, info["path"], start, 4.0, offset) if k > start + 1e-3]
+            if nxt:
+                delta = min(0.3, max(0.5 / fps, (nxt[0] - start) / 2))
+        except Exception:
+            pass
     log(f"cut {os.path.basename(info['path'])} {start:.3f}s to {end:.3f}s -> {os.path.basename(dst)} (stream copy)")
-    _progress_run(cmd, length, progress, log)
+    # MP4 and MKV seek to the keyframe at or before the target, a transport stream to the one at or
+    # after it, so the target goes a little after the keyframe first and a little before it second;
+    # the first packet of the result says which landed, and the plain target is the last resort
+    for d in (delta, -delta, 0.0):
+        if start + d < 0:
+            continue
+        # the video is limited by its exact packet count; the audio by time, which FFmpeg measures
+        # from the seek target, so the shift is taken off (a frame limit on the audio would make
+        # FFmpeg stop short of the last video packets)
+        cmd = [ffmpeg, "-y", "-v", "error", "-ss", f"{start + d:.6f}", "-i", info["path"], "-output_ts_offset", f"{d:.6f}",
+               "-t", f"{max(0.5 / fps, length - d):.4f}", "-frames:v", str(max(1, frames))] + _copy_args(info) + [dst]
+        _progress_run(cmd, length, progress, log)
+        first = first_video_pts(probe_exe, dst) if probe_exe else None
+        # the keyframe comes out at 0, or at the stream's own start time when the muxer keeps it
+        if first is None or any(-1e-3 <= first - base <= 0.5 / fps + 1e-3 for base in (0.0, offset)):
+            return dst
+        log(f"the seek for {os.path.basename(dst)} landed {first:+.3f} s from the keyframe; cutting again")
     return dst
+
+
+def first_video_pts(ffprobe, path):
+    """Presentation time of the first video packet, or None when it cannot be read."""
+    try:
+        out = _run([ffprobe, "-v", "error", "-select_streams", "v:0", "-read_intervals", "%+#1", "-show_entries", "packet=pts_time", "-of", "csv=p=0", path], timeout=60)
+        x = out.split()[0].strip().rstrip(",")
+        return None if x in ("", "N/A") else float(x)
+    except Exception:
+        return None
 
 
 def compatible(a, b):
@@ -410,12 +460,32 @@ def probe_duration(path):
         return 0.0
 
 
-def export(ffmpeg, ffprobe, segments, join, out_dir, name, progress=lambda pct, msg: None, log=print):
+def export(ffmpeg, ffprobe, segments, join, out_dir, name, progress=lambda pct, msg: None, log=print, frame=None):
     """segments: [{"info": probe, "start": s, "end": e}] with keyframe-snapped starts.
-    join=False writes one file per segment; join=True writes a single file. Returns output paths."""
+    join=False writes one file per segment; join=True writes a single file. Returns output paths.
+    frame: None for the recording's own frame, else {"frame": "9:16", "cx", "cy", "size"}; the
+    lossless cut is made first and the reframe encodes only that cut, never the whole recording."""
     if not segments:
         raise RuntimeError("nothing to export")
     os.makedirs(out_dir, exist_ok=True)
+    if frame and frame.get("frame") in FRAMES:
+        plans = [reframe_plan(seg["info"], frame["frame"], frame.get("cx", 0.5), frame.get("cy", 0.5), frame.get("size", "full")) for seg in segments]
+        if any(p["changes"] for p in plans):
+            tmpdir = tempfile.mkdtemp(prefix="ultrashot-frame-", dir=out_dir)
+            try:
+                cuts = export(ffmpeg, ffprobe, segments, join, tmpdir, name, progress=lambda pct, msg: progress(pct * 0.3, msg), log=log)
+                outs = []
+                n = len(cuts)
+                for i, c in enumerate(cuts):
+                    info = segments[0]["info"] if join else segments[i]["info"]
+                    stem, ext = os.path.splitext(os.path.basename(c))
+                    dst = unique_path(os.path.join(out_dir, f"{stem}-{frame['frame'].replace(':', 'x')}{ext if ext.lower() in ('.mp4', '.mov', '.m4v') else '.mp4'}"))
+                    reframe(ffmpeg, info, c, dst, frame["frame"], frame.get("cx", 0.5), frame.get("cy", 0.5), frame.get("size", "full"),
+                            progress=lambda pct, i=i: progress(30.0 + (i + pct / 100.0) / n * 69.0, f"reframing {i + 1} of {n}" if n > 1 else "reframing"), log=log)
+                    outs.append(dst)
+                return outs
+            finally:
+                shutil.rmtree(tmpdir, ignore_errors=True)
     first = segments[0]["info"]
     ext = os.path.splitext(first["path"])[1].lower() or ".mp4"
     outputs = []
@@ -457,18 +527,121 @@ def unique_path(p):
     return p
 
 
+# ----------------------------------------------------------------------------- reframing
+
+# the frames that YouTube and Instagram lay out natively, and the largest size each of them keeps
+FRAMES = {
+    "9:16": {"ratio": (9, 16), "upload": (1080, 1920), "for": "YouTube Shorts, Instagram Reels, TikTok and Stories"},
+    "4:5": {"ratio": (4, 5), "upload": (1080, 1350), "for": "Instagram feed posts in portrait"},
+    "1:1": {"ratio": (1, 1), "upload": (1080, 1080), "for": "Instagram feed posts in square"},
+    "16:9": {"ratio": (16, 9), "upload": (1920, 1080), "for": "YouTube videos and landscape feeds"},
+}
+
+
+def _even(n, lo=2):
+    return max(lo, int(n) // 2 * 2)
+
+
+def crop_rect(sw, sh, frame, cx=0.5, cy=0.5):
+    """The largest window of the given frame that fits a sw×sh picture, centred on (cx, cy) as
+    fractions of the picture and kept inside it, with even edges as 4:2:0 encoders need."""
+    rw, rh = FRAMES[frame]["ratio"]
+    if sw * rh > sh * rw:
+        h, w = _even(sh), _even(sh * rw / rh)
+    else:
+        w, h = _even(sw), _even(sw * rh / rw)
+    w, h = min(w, _even(sw)), min(h, _even(sh))
+    x = _even(min(max(cx * sw - w / 2, 0), sw - w), 0)
+    y = _even(min(max(cy * sh - h / 2, 0), sh - h), 0)
+    return w, h, x, y
+
+
+def reframe_plan(info, frame, cx=0.5, cy=0.5, size="full"):
+    """What a reframe would do to this recording: the crop window, the output size, and whether
+    the picture changes at all (a 16:9 recording framed 16:9 at full size is left alone)."""
+    sw, sh = int(info["video"]["width"]), int(info["video"]["height"])
+    w, h, x, y = crop_rect(sw, sh, frame, cx, cy)
+    ow, oh = w, h
+    if size == "upload":
+        uw, uh = FRAMES[frame]["upload"]
+        if w > uw or h > uh:
+            ow, oh = uw, uh
+    crop = not (w == sw and h == sh)
+    return {"frame": frame, "crop": (w, h, x, y), "size": (ow, oh), "scale": (ow, oh) != (w, h), "changes": crop or (ow, oh) != (w, h)}
+
+
+def _encoder_choices(ffmpeg, info):
+    """Encoders to try, best first: the GPU in the recording's own codec when it can, then the
+    GPU's HEVC, then software HEVC, which every build has."""
+    have = encoders(ffmpeg)
+    fps = info["video"]["fps"] or 60
+    gop = ["-g", str(int(round(fps * 2)))]   # a keyframe every two seconds, as recorders write, so the result trims well
+    nv = ["-preset", "p6", "-tune", "hq", "-rc", "vbr", "-cq", "17", "-b:v", "0"] + gop
+    out = []
+    if info["video"]["codec"] == "av1" and "av1_nvenc" in have:
+        out.append(("NVENC AV1", "av1", ["-c:v", "av1_nvenc"] + nv))
+    if "hevc_nvenc" in have:
+        out.append(("NVENC HEVC", "hevc", ["-c:v", "hevc_nvenc", "-profile:v", "main10", "-tag:v", "hvc1"] + nv))
+    if "libx265" in have:
+        out.append(("x265", "hevc", ["-c:v", "libx265", "-preset", "medium", "-crf", "16", "-tag:v", "hvc1"] + gop))
+    if not out:
+        raise RuntimeError("this FFmpeg has no AV1 or HEVC encoder")
+    return out
+
+
+def reframe(ffmpeg, info, src, dst, frame, cx=0.5, cy=0.5, size="full", progress=lambda pct: None, log=print):
+    """Crop `src` to the frame, optionally scale it to the platform's upload size, and encode it
+    again at near-lossless quality with the colour tags, mastering display and content light
+    metadata carried across and the audio copied untouched. This is the one export that is not a
+    stream copy, because a crop changes every frame. Returns (plan, encoder name, codec)."""
+    plan = reframe_plan(info, frame, cx, cy, size)
+    w, h, x, y = plan["crop"]; ow, oh = plan["size"]
+    vf = [f"crop={w}:{h}:{x}:{y}"]
+    if plan["scale"]:
+        vf.append(f"scale={ow}:{oh}:flags=lanczos+accurate_rnd+full_chroma_int")
+    depth = info["video"]["bit_depth"]
+    tags = []
+    for opt, key in (("-color_primaries", "primaries"), ("-color_trc", "transfer"), ("-colorspace", "matrix")):
+        if info["hdr"].get(key):
+            tags += [opt, info["hdr"][key]]
+    if info["hdr"].get("range"):
+        tags += ["-color_range", info["hdr"]["range"]]
+    duration = info.get("duration", 0.0) if src == info["path"] else probe_duration(src)
+    last = None
+    for name, codec, enc in _encoder_choices(ffmpeg, info):
+        pix = "p010le" if (depth > 8 and "nvenc" in enc[1]) else ("yuv420p10le" if depth > 8 else "yuv420p")
+        cmd = [ffmpeg, "-y", "-v", "error", "-i", src, "-map", "0:v:0", "-map", "0:a?", "-vf", ",".join(vf + [f"format={pix}"])] + enc + tags + \
+              ["-c:a", "copy", "-map_metadata", "0", "-movflags", "+faststart", dst]
+        log(f"reframe {os.path.basename(src)} to {frame} ({w}×{h} at {x},{y}" + (f", scaled to {ow}×{oh}" if plan["scale"] else "") + f") with {name}")
+        try:
+            _progress_run(cmd, duration, progress, log)
+            return plan, name, codec
+        except RuntimeError as e:
+            last = e
+            log(f"{name} failed ({e}); trying the next encoder")
+            try:
+                os.remove(dst)
+            except OSError:
+                pass
+    raise RuntimeError(f"could not encode the reframed video: {last}")
+
+
 # ----------------------------------------------------------------------------- verification
 
-def verify(ffprobe, src_info, dst_path):
+def verify(ffprobe, src_info, dst_path, expect=None):
     """Probe the result and compare everything that matters for 'nothing was lost': codec, size,
-    rate, bit depth, colour tags, HDR metadata and audio. Returns rows of (label, source, output, ok)."""
+    rate, bit depth, colour tags, HDR metadata and audio. Returns rows of (label, source, output, ok).
+    expect: for a reframed export, the codec and size the encode was asked for; those rows pass
+    when the output matches the request, and a Dolby Vision layer is expected to be gone."""
     d = probe(ffprobe, dst_path)
     s = src_info
+    e = expect or {}
     rows = []
     def row(label, a, b, ok=None):
         rows.append({"label": label, "source": "" if a is None else str(a), "output": "" if b is None else str(b), "ok": (a == b) if ok is None else ok})
-    row("Video codec", s["video"]["codec"], d["video"]["codec"])
-    row("Resolution", f"{s['video']['width']}×{s['video']['height']}", f"{d['video']['width']}×{d['video']['height']}")
+    row("Video codec", s["video"]["codec"], d["video"]["codec"], d["video"]["codec"] == e.get("codec", s["video"]["codec"]))
+    ew, eh = e.get("size") or (s["video"]["width"], s["video"]["height"])
+    row("Resolution", f"{s['video']['width']}×{s['video']['height']}", f"{d['video']['width']}×{d['video']['height']}", (d["video"]["width"], d["video"]["height"]) == (ew, eh))
     row("Frame rate", f"{s['video']['fps']:g}", f"{d['video']['fps']:g}", abs(s["video"]["fps"] - d["video"]["fps"]) <= 0.002 * max(s["video"]["fps"], d["video"]["fps"], 1))
     row("Pixel format", s["video"]["pix_fmt"], d["video"]["pix_fmt"])
     row("Bit depth", s["video"]["bit_depth"], d["video"]["bit_depth"])
@@ -483,7 +656,7 @@ def verify(ffprobe, src_info, dst_path):
             bool(s["hdr"]["mastering"]) == bool(d["hdr"]["mastering"]))
     if s["hdr"]["dolby_vision"] or d["hdr"]["dolby_vision"]:
         row("Dolby Vision RPU", "present" if s["hdr"]["dolby_vision"] else "absent", "present" if d["hdr"]["dolby_vision"] else "absent",
-            bool(s["hdr"]["dolby_vision"]) == bool(d["hdr"]["dolby_vision"]))
+            (bool(s["hdr"]["dolby_vision"]) if not e else False) == bool(d["hdr"]["dolby_vision"]))
     row("Audio streams", ", ".join(f"{a['codec']} {a['channels']}ch" for a in s["audio"]) or "none",
         ", ".join(f"{a['codec']} {a['channels']}ch" for a in d["audio"]) or "none")
     return {"output": d, "rows": rows, "all_ok": all(r["ok"] for r in rows)}

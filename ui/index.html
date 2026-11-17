@@ -217,6 +217,7 @@
     <section class="v-main">
       <div class="v-stage" id="vStage">
         <video id="vPlayer" preload="metadata" playsinline></video>
+        <div class="v-crop hidden" id="vCrop"><div class="v-crop-win" id="vCropWin" title="Drag to choose what stays in the frame; double-click to centre it"><span class="v-crop-tag" id="vCropTag"></span></div></div>
         <div class="v-guide" id="vGuide">
           <div class="v-step"><b>1</b><span>Add a recording</span><small>Click anywhere here to choose files, or drop them on the window.</small><button class="primary small" id="vGuideAdd">Choose recordings</button></div>
           <div class="v-step"><b>2</b><span>Mark in and out</span><small>Drag the IN and OUT handles on the timeline, right-click it, or use the Mark buttons.</small></div>
@@ -264,12 +265,15 @@
       <div class="v-exp-head">Export</div>
       <div class="v-summary" id="vSummary">No segments yet</div>
       <label class="v-row"><span>Join segments into one file</span><span class="switch" id="vJoin"></span></label>
+      <div class="v-row v-col"><span>Frame</span><div class="seg mini" id="vFrame"><button data-v="source" class="on" title="The recording's own frame, copied losslessly">As recorded</button><button data-v="9:16" title="Vertical: YouTube Shorts, Instagram Reels, TikTok and Stories">9:16</button><button data-v="4:5" title="Portrait: Instagram feed">4:5</button><button data-v="1:1" title="Square: Instagram feed">1:1</button><button data-v="16:9" title="Landscape: YouTube and feeds">16:9</button></div><div class="v-frame-note" id="vFrameNote"></div></div>
+      <div class="v-row v-col hidden" id="vSizeRow"><span>Size</span><div class="seg mini" id="vSize"><button data-v="full" class="on" title="Keep every pixel inside the frame">Full resolution</button><button data-v="upload" title="Scale to the largest size the platform keeps, so the upload is smaller and the platform does not scale it itself">Upload size</button></div></div>
       <div class="v-row v-col"><span>Save to</span><div class="seg mini" id="vWhere"><button data-v="beside" class="on">Next to the recording</button><button data-v="folder">Folder…</button></div><div class="v-folder" id="vFolder"></div></div>
       <div class="v-row v-col hidden" id="vNameRow"><span>File name</span><input type="text" class="text" id="vName" placeholder="joined" spellcheck="false"></div>
       <button class="primary" id="vExport" disabled>Export</button>
       <div class="v-progress hidden" id="vProgress"><div class="bar"><div class="fill" id="vFill"></div></div><div class="v-pmsg" id="vPmsg"></div></div>
       <div class="v-results" id="vResults"></div>
-      <div class="v-keep"><b>Lossless.</b> Cuts land on keyframes and the frames are copied as recorded: codec, 10-bit, BT.2020, PQ or HLG, mastering display and content light metadata, Dolby Vision and the audio all stay exactly as they were. Every export is read back and checked against its source.</div>
+      <div class="v-keep" id="vKeepLossless"><b>Lossless.</b> Cuts land on keyframes and the frames are copied as recorded: codec, 10-bit, BT.2020, PQ or HLG, mastering display and content light metadata, Dolby Vision and the audio all stay exactly as they were. Every export is read back and checked against its source.</div>
+      <div class="v-keep hidden" id="vKeepFrame"><b>Reframed.</b> A crop changes every frame, so this export is cut losslessly first and then encoded once more on the GPU at near-lossless quality. 10-bit, BT.2020, PQ or HLG, the mastering display and content light metadata and the audio are carried across unchanged, and the result is read back and checked.</div>
       <span class="chip v-ff hidden" id="vFfmpeg"></span>
     </aside>
   </div>

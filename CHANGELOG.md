@@ -20,6 +20,13 @@ All notable changes to UltraShot are documented here. The format follows
   picker, the in and out handles have grips, a right click on the timeline or a segment opens a
   menu, Split here cuts the selection in two on a keyframe, Reset returns the handles to the whole
   recording, and Undo and Clear all take back segment changes.
+- A Frame choice in the video export for the shapes YouTube and Instagram lay out natively: 9:16
+  for Shorts, Reels, TikTok and Stories, 4:5 and 1:1 for feed posts and 16:9 for landscape. The
+  crop window is dragged on the player, the size is either every pixel inside the window or the
+  platform's upload size, and the export is the one place the editor re-encodes: the segment is cut
+  losslessly first, then encoded on the GPU in AV1 or HEVC at near-lossless quality with the 10-bit
+  samples, colour tags, mastering display and content light metadata and the audio carried
+  across, and the result is checked and reported like every other export.
 
 ## [1.2.1] - 2026-11-14
 

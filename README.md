@@ -286,8 +286,10 @@ compared with its source so that the codec, the 10-bit samples, the BT.2020 and 
 mastering display and content light metadata, a Dolby Vision configuration and the audio are known
 to have survived. The player streams the file from disk, so a fifty gigabyte recording opens at
 once, and a file the window cannot decode gets a small preview copy in a size-capped local cache
-while the export still comes from the original. The editor is built on FFmpeg, which it can fetch
-itself when none is installed. [docs/video.md](docs/video.md) explains how a keyframe cut works and
+while the export still comes from the original. A *Frame* choice reframes an export for Shorts,
+Reels and feed posts, 9:16, 4:5, 1:1 or 16:9, with the window dragged on the player; that one
+export is encoded again on the GPU at near-lossless quality with every HDR tag carried across, and
+the panel says so. The editor is built on FFmpeg, which it can fetch itself when none is installed. [docs/video.md](docs/video.md) explains how a keyframe cut works and
 describes the editor.
 
 <p align="center"><a href="https://raw.githubusercontent.com/sgaddameedi/UltraShot/main/docs/screenshots/video-editor.png"><img src="docs/screenshots/video-editor.png" width="90%" alt="The video editor after a joined export, with the verification report beside the player"></a></p>

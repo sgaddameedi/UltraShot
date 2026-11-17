@@ -110,3 +110,68 @@ def test_transport_stream_times_are_relative_to_its_start(clip, tmp_path):
     ref = str(tmp_path / "mp4-cut.mp4")
     V.cut(FF[0], src, 2.0, 4.0, ref, log=lambda m: None, ffprobe=FF[1])
     assert raw_frame(out, 0.0) == raw_frame(ref, 0.0) and raw_frame(out, 1.5) == raw_frame(ref, 1.5)
+
+
+def test_crop_rect_fits_the_frame_and_stays_even():
+    assert V.crop_rect(3840, 2160, "9:16") == (1214, 2160, 1312, 0)
+    assert V.crop_rect(3840, 2160, "9:16", cx=0.0)[2] == 0
+    w, h, x, y = V.crop_rect(3840, 2160, "9:16", cx=1.0)
+    assert x + w <= 3840 and x % 2 == 0
+    assert V.crop_rect(3840, 2160, "16:9") == (3840, 2160, 0, 0)
+    assert V.crop_rect(3840, 2160, "1:1") == (2160, 2160, 840, 0)
+    assert V.crop_rect(1080, 1920, "16:9") == (1080, 606, 0, 656)
+    info = {"video": {"width": 3840, "height": 2160}}
+    plan = V.reframe_plan(info, "9:16", size="upload")
+    assert plan["size"] == (1080, 1920) and plan["scale"] and plan["changes"]
+    assert V.reframe_plan(info, "9:16")["size"] == (1214, 2160)
+    assert not V.reframe_plan(info, "16:9")["changes"]
+    assert V.reframe_plan(info, "16:9", size="upload")["size"] == (1920, 1080)
+
+
+def test_reframe_crops_and_keeps_hdr_metadata(clip, tmp_path):
+    info = V.probe(FF[1], clip)
+    outs = V.export(FF[0], FF[1], [{"info": info, "start": 1.0, "end": 4.0}], False, str(tmp_path), "",
+                    frame={"frame": "9:16", "cx": 0.25, "cy": 0.5, "size": "full"})
+    assert len(outs) == 1 and outs[0].endswith("-cut-9x16.mp4")
+    assert os.listdir(tmp_path) == [os.path.basename(outs[0])], "the lossless intermediate must not be left behind"
+    plan = V.reframe_plan(info, "9:16", 0.25, 0.5, "full")
+    rep = V.verify(FF[1], info, outs[0], {"codec": "hevc", "size": plan["size"]})
+    assert rep["all_ok"], [r for r in rep["rows"] if not r["ok"]]
+    out = rep["output"]
+    assert (out["video"]["width"], out["video"]["height"]) == (202, 360) and out["video"]["bit_depth"] == 10
+    assert out["hdr"]["kind"] == "PQ" and out["hdr"]["max_cll"] == 1000 and out["hdr"]["max_fall"] == 400 and out["hdr"]["mastering"]
+    assert abs(out["duration"] - 3.0) < 0.2 and len(out["audio"]) == 1
+    # a frame the recording already has is a plain lossless copy
+    same = V.export(FF[0], FF[1], [{"info": info, "start": 1.0, "end": 4.0}], False, str(tmp_path / "same"), "",
+                    frame={"frame": "16:9", "cx": 0.5, "cy": 0.5, "size": "full"})
+    assert same[0].endswith("-cut.mp4") and V.verify(FF[1], info, same[0])["all_ok"]
+
+
+def test_cut_is_frame_exact_when_the_stream_starts_late(clip, tmp_path):
+    """A recorder that starts its clock a few milliseconds in puts every keyframe just off the
+    second, and a seek aimed exactly at one can land on the keyframe before it. The cut must still
+    hold exactly the frames between its points, starting on the keyframe."""
+    late = str(tmp_path / "late.mp4")
+    subprocess.run([FF[0], "-y", "-v", "error", "-i", clip, "-c", "copy", "-output_ts_offset", "0.009", "-movflags", "+faststart", late],
+                   check=True, creationflags=V.CREATE_NO_WINDOW, timeout=120)
+    info = V.probe(FF[1], late)
+    assert abs(info["start"] - 0.009) < 0.002
+    t, _ = V.snap(FF[1], late, 2.0, "nearest", start=info["start"])
+    assert abs(t - 2.0) < 0.02
+    out = str(tmp_path / "late-cut.mp4")
+    V.cut(FF[0], info, t, 4.0, out, log=lambda m: None, ffprobe=FF[1])
+    n = subprocess.run([FF[1], "-v", "error", "-select_streams", "v:0", "-count_packets", "-show_entries", "stream=nb_read_packets", "-of", "csv=p=0", out],
+                       capture_output=True, text=True, creationflags=V.CREATE_NO_WINDOW, timeout=120).stdout.strip().rstrip(",")
+    pts = sorted(float(x.rstrip(",")) for x in subprocess.run([FF[1], "-v", "error", "-select_streams", "v:0", "-show_entries", "packet=pts_time", "-of", "csv=p=0", out],
+                                                            capture_output=True, text=True, creationflags=V.CREATE_NO_WINDOW, timeout=120).stdout.split())
+    inside = [t for t in pts if t < 2.0 - 1e-3]
+    assert len(inside) == 60 and max(b - a for a, b in zip(inside, inside[1:])) < 1.5 / 30, "every frame before the out point, with no gap"
+    assert len(pts) <= 64, "at most a few reordered frames past the out point"
+    a = subprocess.run([FF[1], "-v", "error", "-select_streams", "a:0", "-show_entries", "packet=pts_time,duration_time", "-of", "csv=p=0", out],
+                       capture_output=True, text=True, creationflags=V.CREATE_NO_WINDOW, timeout=120).stdout.split()
+    a_start, a_end = float(a[0].split(",")[0]), sum(float(x) for x in a[-1].split(","))
+    assert -0.1 <= a_start <= 0.03 and abs(a_end - 2.0) < 0.05, (a_start, a_end)   # at most a few audio packets lead the keyframe
+    first = V.first_video_pts(FF[1], out)
+    assert first is not None and -0.001 <= first <= 0.03, first
+    assert abs(V.video_length(out) - 2.0) < 0.05
+    assert raw_frame(out, 0.0) == raw_frame(clip, 2.0) and raw_frame(out, 1.5) == raw_frame(clip, 3.5)

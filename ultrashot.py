@@ -1340,9 +1340,9 @@ class Api:
         except Exception as e:
             return {"error": str(e)}
 
-    def video_export(self, segments, join=False, out_dir="", name=""):
+    def video_export(self, segments, join=False, out_dir="", name="", frame=None):
         try:
-            return self._app.video.export(segments or [], bool(join), out_dir or "", name or "")
+            return self._app.video.export(segments or [], bool(join), out_dir or "", name or "", frame)
         except Exception as e:
             return {"error": str(e)}
 

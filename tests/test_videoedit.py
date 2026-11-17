@@ -174,3 +174,21 @@ def test_media_server_registers_each_path_once():
         assert srv.register(__file__) != a
     finally:
         srv.close()
+
+
+def test_export_reframes_when_asked(session, clip, tmp_path):
+    s, app = session
+    vid = s.add_paths([clip])[0]
+    assert wait(lambda: s.videos[vid]["status"] == "ready")
+    out = str(tmp_path / "framed")
+    job = s.export([{"id": vid, "start": 1.0, "end": 3.0}], False, out, "", {"frame": "9:16", "cx": 0.8, "cy": 0.5, "size": "upload"})
+    assert job["frame"] == {"frame": "9:16", "cx": 0.8, "cy": 0.5, "size": "upload"}
+    assert wait(lambda: not s.job["running"], 300) and s.job["error"] is None, s.job["error"]
+    assert [os.path.basename(o) for o in s.job["outputs"]] == ["hdr10-cut-9x16.mp4"] and os.listdir(out) == ["hdr10-cut-9x16.mp4"]
+    rep = s.job["verify"][0]
+    assert rep["all_ok"], [r for r in rep["rows"] if not r["ok"]]
+    assert rep["reframed"]["frame"] == "9:16" and rep["reframed"]["size"] == [202, 360] and rep["reframed"]["encoder"]
+    assert any(r["label"] == "Resolution" and r["output"] == "202×360" and r["ok"] for r in rep["rows"])
+    # an unknown frame is ignored rather than failing the export
+    job = s.export([{"id": vid, "start": 1.0, "end": 2.0}], False, out, "", {"frame": "3:2"})
+    assert job["frame"] is None and wait(lambda: not s.job["running"], 180) and s.job["verify"][0]["reframed"] is None

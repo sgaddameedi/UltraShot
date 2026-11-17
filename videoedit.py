@@ -203,7 +203,7 @@ class VideoSession:
             pass
 
     # ------------------------------------------------------------- export
-    def export(self, segments, join, out_dir, name):
+    def export(self, segments, join, out_dir, name, frame=None):
         """segments: [{id, start, end}]. Snaps each start to its keyframe again, cuts by stream
         copy, joins when asked, then verifies every output against its source."""
         if self.job and self.job.get("running"):
@@ -222,19 +222,37 @@ class VideoSession:
                 if not V.compatible(a["info"], b["info"]):
                     raise RuntimeError(f"{a['info']['name']} and {b['info']['name']} have different streams and cannot be joined without re-encoding")
         out_dir = out_dir or os.path.dirname(segs[0]["info"]["path"])
-        self.job = {"running": True, "pct": 0.0, "msg": "starting", "outputs": [], "verify": [], "error": None, "started": time.time()}
+        frame = frame if isinstance(frame, dict) and frame.get("frame") in V.FRAMES else None
+        if frame:
+            frame = {"frame": frame["frame"], "cx": min(max(float(frame.get("cx", 0.5)), 0.0), 1.0), "cy": min(max(float(frame.get("cy", 0.5)), 0.0), 1.0),
+                     "size": "upload" if frame.get("size") == "upload" else "full"}
+        self.job = {"running": True, "pct": 0.0, "msg": "starting", "outputs": [], "verify": [], "error": None, "started": time.time(), "frame": frame}
         self.cancel.clear()
+        encoder_used = []
+        def log(msg):
+            # the reframe says which encoder it ended up with; keep that for the report
+            if msg.startswith("reframe ") and " with " in msg:
+                encoder_used.append(msg.rsplit(" with ", 1)[1])
+            elif msg.endswith("trying the next encoder") and encoder_used:
+                encoder_used.pop()
+            self._log(msg)
         def run():
             try:
                 outs = V.export(ff, fp, segs, bool(join), out_dir, name,
-                                progress=lambda pct, msg: self._progress(pct, msg), log=self._log)
+                                progress=lambda pct, msg: self._progress(pct, msg), log=log, frame=frame)
                 reports = []
                 for i, o in enumerate(outs):
                     src = segs[0]["info"] if join else segs[i]["info"]
                     self._progress(99.0, f"verifying {os.path.basename(o)}")
-                    rep = V.verify(fp, src, o)
+                    expect = None
+                    plan = V.reframe_plan(src, frame["frame"], frame["cx"], frame["cy"], frame["size"]) if frame else None
+                    if plan and plan["changes"]:
+                        enc = encoder_used[i] if i < len(encoder_used) else (encoder_used[-1] if encoder_used else "")
+                        expect = {"codec": "av1" if "AV1" in enc else "hevc", "size": plan["size"]}
+                    rep = V.verify(fp, src, o, expect)
                     reports.append({"output": o, "size": os.path.getsize(o), "duration": rep["output"]["duration"], "summary": rep["output"]["summary"],
-                                    "rows": rep["rows"], "all_ok": rep["all_ok"]})
+                                    "rows": rep["rows"], "all_ok": rep["all_ok"],
+                                    "reframed": {"frame": frame["frame"], "size": list(plan["size"]), "encoder": enc} if expect else None})
                     self._log(f"verified {os.path.basename(o)}: {'everything matches the source' if rep['all_ok'] else 'differences found'}")
                 self.job.update(running=False, pct=100.0, msg="done", outputs=outs, verify=reports)
                 self._emit("video_done", self.job)

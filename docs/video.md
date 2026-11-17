@@ -24,7 +24,10 @@ often lost.
 UltraShot instead moves every in point to the nearest keyframe and copies the packets from there
 to the out point as they are. Recorders write a keyframe every half second to two seconds, so the
 in point lands within a second of where it was placed and the editor tells you where it went. The
-out point can fall on any frame, because frames after the out point are simply not copied. The
+out point can fall on any frame, because frames after the out point are simply not copied; when a
+recording uses B-frames, which are stored out of order, the one or two frames that are stored
+before the last frame you keep come along with it, so the piece can run a frame or two past the
+out point but never has a gap before it. The
 join writes the pieces one after the other into a fresh container with the timestamps rewritten
 so they run continuously; the packets inside are still the originals.
 
@@ -80,6 +83,35 @@ settings, and the editor says so when they do not. Progress and the verification
 under the button, with shortcuts to open the file, show it in its folder or bring it back into
 the bin for a further cut.
 
+## Framing for Shorts, Reels and feeds
+
+The *Frame* row in the export panel reframes the export for the shapes that YouTube and
+Instagram lay out natively: 9:16 for Shorts, Reels, TikTok and Stories, 4:5 and 1:1 for feed
+posts, and 16:9 for ordinary videos and landscape feeds. Choosing one draws a window on the
+player; drag it to decide what stays in the picture, and double-click it to centre it again.
+*Size* keeps every pixel inside the window, which from a 4K recording gives 1214×2160 for 9:16,
+or scales it to the largest size the platform keeps, 1080×1920 for the vertical shapes, so the
+upload is smaller and the platform does no scaling of its own.
+
+This is the one export that is not a stream copy, and the panel says so. A crop changes every
+frame, so the picture has to be encoded again; there is no way around that, and a tool that
+claims otherwise is re-encoding quietly. UltraShot does it as carefully as it can: the segment is
+cut losslessly first, so only the seconds you keep are ever decoded, and the cut is then encoded
+on the GPU, AV1 for AV1 recordings and HEVC otherwise, at a quality setting far above what any
+platform keeps after upload, with a keyframe every two seconds so the result trims well later.
+The bit depth, the BT.2020 primaries, the PQ or HLG transfer, the mastering display and content
+light metadata and the audio are carried across unchanged, and the result is read back and
+checked row by row like every other export; the report names the encoder and shows the new size
+beside the old one. A Dolby Vision layer cannot survive a re-encode and is dropped, which leaves
+the HDR10 picture underneath. On a machine without an NVIDIA GPU the encode falls back to the
+software HEVC encoder, which is slower but gives the same result. A recording that already has
+the chosen frame, such as a 16:9 recording framed 16:9 at full size, is copied losslessly as it
+is.
+
+YouTube keeps HDR on Shorts and on ordinary uploads when the file is tagged as above. Instagram
+accepts HDR from its phone apps and is less predictable with files uploaded from a computer,
+where some viewers see the same file in SDR; that is a limit of the platform, not of the file.
+
 ## FFmpeg
 
 The editor is built on FFmpeg, which does the probing, the frame grabs, the stream copies and the
@@ -91,7 +123,7 @@ works just as well.
 
 ## What the editor does not do
 
-It does not re-encode, so it cannot cut on a frame that is not a keyframe, change the resolution
-or frame rate, add transitions, titles or filters, or join recordings made with different
+Apart from reframing, it does not re-encode, so it cannot cut on a frame that is not a keyframe,
+change the frame rate, add transitions, titles or filters, or join recordings made with different
 settings. It does not change the audio. These are the trade-offs that make the exports exact, and
 a recording that needs any of them is better served by an editor that renders.

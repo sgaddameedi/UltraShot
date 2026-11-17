@@ -34,6 +34,7 @@ window.VideoUI = (() => {
     open: false, videos: new Map(), order: [], cur: null, inT: 0, outT: 0, segs: [], sel: -1,
     join: false, where: "beside", folder: "", keys: [], proxy: false, previewEnd: null,
     stripFor: null, job: null, raf: 0, ff: null, hist: [],
+    frame: "source", fsize: "full", cx: 0.5, cy: 0.5,
   };
   let P, api;
 
@@ -113,6 +114,7 @@ window.VideoUI = (() => {
     $("#vGuide").classList.toggle("hidden", has);
     $("#vStage").classList.toggle("empty", !has);
     $("#vTimeline").classList.toggle("idle", !has);
+    if (!has) $("#vCrop").classList.add("hidden");
   }
   function coach(show) {
     const c = $("#vCoach");
@@ -154,7 +156,7 @@ window.VideoUI = (() => {
       P.load();
       $("#vStageMsg").textContent = "";
       V.inT = 0; V.outT = v.info.duration; V.keys = [];
-      renderStageChip(); layoutRange(); layoutPlayhead(0); renderTime(0); renderRuler();
+      renderStageChip(); layoutRange(); layoutPlayhead(0); renderTime(0); renderRuler(); renderFrame();
       loadStrip(id);
       api.video_keyframes(id, 0, 8).then((ks) => { if (V.cur === id && Array.isArray(ks)) { V.keys = ks; renderTicks(); } });
       renderGuide(); coach(true);
@@ -367,6 +369,88 @@ window.VideoUI = (() => {
     if (P.readyState >= 1) go(); else P.addEventListener("loadedmetadata", go, { once: true });
   }
 
+  // ------------------------------------------------------------- frame
+  const FRAMES = {
+    "9:16": { r: [9, 16], up: [1080, 1920], for: "YouTube Shorts, Instagram Reels, TikTok and Stories" },
+    "4:5": { r: [4, 5], up: [1080, 1350], for: "Instagram feed posts in portrait" },
+    "1:1": { r: [1, 1], up: [1080, 1080], for: "Instagram feed posts in square" },
+    "16:9": { r: [16, 9], up: [1920, 1080], for: "YouTube videos and landscape feeds" },
+  };
+  const even = (n, lo = 2) => Math.max(lo, Math.floor(n / 2) * 2);
+  function cropRect(sw, sh, frame, cx, cy) {
+    // the same arithmetic as the exporter, so the window drawn here is the window that is cut
+    const [rw, rh] = FRAMES[frame].r;
+    let w, h;
+    if (sw * rh > sh * rw) { h = even(sh); w = even(sh * rw / rh); } else { w = even(sw); h = even(sw * rh / rw); }
+    w = Math.min(w, even(sw)); h = Math.min(h, even(sh));
+    const x = even(Math.min(Math.max(cx * sw - w / 2, 0), sw - w), 0), y = even(Math.min(Math.max(cy * sh - h / 2, 0), sh - h), 0);
+    return { w, h, x, y };
+  }
+  function framePlan() {
+    const v = V.videos.get(V.cur); if (!v?.info || V.frame === "source") return null;
+    const sw = v.info.video.width, sh = v.info.video.height;
+    const c = cropRect(sw, sh, V.frame, V.cx, V.cy);
+    let ow = c.w, oh = c.h;
+    if (V.fsize === "upload") { const [uw, uh] = FRAMES[V.frame].up; if (c.w > uw || c.h > uh) { ow = uw; oh = uh; } }
+    return { ...c, sw, sh, ow, oh, scale: ow !== c.w || oh !== c.h, crop: !(c.w === sw && c.h === sh), changes: !(c.w === sw && c.h === sh) || ow !== c.w || oh !== c.h };
+  }
+  function videoBox() {
+    // where the picture sits inside the stage under object-fit: contain
+    const st = $("#vStage").getBoundingClientRect(); const v = V.videos.get(V.cur);
+    const sw = v?.info?.video?.width || P.videoWidth || 16, sh = v?.info?.video?.height || P.videoHeight || 9;
+    const k = Math.min(st.width / sw, st.height / sh), w = sw * k, h = sh * k;
+    return { left: (st.width - w) / 2, top: (st.height - h) / 2, width: w, height: h, k };
+  }
+  function layoutCrop() {
+    const box = $("#vCrop"), p = framePlan();
+    if (!p || $("#vStage").classList.contains("empty")) { box.classList.add("hidden"); return; }
+    box.classList.remove("hidden");
+    const b = videoBox(), win = $("#vCropWin");
+    win.style.left = (b.left + p.x * b.k) + "px"; win.style.top = (b.top + p.y * b.k) + "px";
+    win.style.width = (p.w * b.k) + "px"; win.style.height = (p.h * b.k) + "px";
+    win.classList.toggle("full", !p.crop);
+    $("#vCropTag").textContent = `${V.frame} · ${p.w}×${p.h}` + (p.scale ? ` → ${p.ow}×${p.oh}` : "");
+  }
+  function frameNote() {
+    const p = framePlan();
+    if (!p) return "";
+    if (!p.changes) return `${FRAMES[V.frame].for}. This recording is already ${V.frame}, so it is copied losslessly as it is.`;
+    const size = p.scale ? `Scaled to ${p.ow}×${p.oh}, the largest size the platform keeps.` : `${p.w}×${p.h}, every pixel inside the window kept.`;
+    return `${FRAMES[V.frame].for}. ${p.crop ? "Drag the window on the player to choose what stays in the picture. " : ""}${size} Re-encoded on the GPU at near-lossless quality with the HDR metadata carried across.`;
+  }
+  function setFrame(f) {
+    V.frame = f;
+    [...$("#vFrame").children].forEach((b) => b.classList.toggle("on", b.dataset.v === f));
+    renderFrame();
+  }
+  function renderFrame() {
+    const p = framePlan(), on = !!p && p.changes;
+    $("#vSizeRow").classList.toggle("hidden", V.frame === "source");
+    $("#vFrameNote").textContent = frameNote();
+    $("#vKeepLossless").classList.toggle("hidden", on);
+    $("#vKeepFrame").classList.toggle("hidden", !on);
+    layoutCrop(); updateExportBtn();
+  }
+  function bindCrop() {
+    const win = $("#vCropWin"); let drag = null;
+    win.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return; const p = framePlan(); if (!p || !p.crop) return;
+      drag = { x: e.clientX, y: e.clientY, cx: V.cx, cy: V.cy, k: videoBox().k, sw: p.sw, sh: p.sh };
+      win.setPointerCapture?.(e.pointerId); e.preventDefault(); e.stopPropagation();
+    });
+    win.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      V.cx = clamp(drag.cx + (e.clientX - drag.x) / drag.k / drag.sw, 0, 1);
+      V.cy = clamp(drag.cy + (e.clientY - drag.y) / drag.k / drag.sh, 0, 1);
+      layoutCrop();
+    });
+    const up = () => { drag = null; };
+    win.addEventListener("pointerup", up); win.addEventListener("pointercancel", up);
+    win.addEventListener("click", (e) => e.stopPropagation());
+    win.addEventListener("dblclick", (e) => { e.stopPropagation(); V.cx = 0.5; V.cy = 0.5; layoutCrop(); });
+    new ResizeObserver(() => { if (V.open) layoutCrop(); }).observe($("#vStage"));
+  }
+
   // ------------------------------------------------------------- export
   function updateExportBtn() {
     const running = V.job?.running, n = V.segs.length, join = V.join && n > 1;
@@ -375,15 +459,17 @@ window.VideoUI = (() => {
     $("#vNameRow").classList.toggle("hidden", !join);
     const total = V.segs.reduce((a, s) => a + s.end - s.start, 0);
     const srcs = new Set(V.segs.map((s) => s.id)).size;
+    const p = framePlan();
     $("#vSummary").innerHTML = !n ? "No segments yet. Each segment you add becomes a file here, or part of one joined file."
-      : `<b>${n} segment${n > 1 ? "s" : ""}</b> from ${srcs} recording${srcs > 1 ? "s" : ""}, <b>${hms(total)}</b> in total, ${join ? "joined into <b>one file</b>" : n > 1 ? "as <b>separate files</b>" : "as <b>one file</b>"}.`;
+      : `<b>${n} segment${n > 1 ? "s" : ""}</b> from ${srcs} recording${srcs > 1 ? "s" : ""}, <b>${hms(total)}</b> in total, ${join ? "joined into <b>one file</b>" : n > 1 ? "as <b>separate files</b>" : "as <b>one file</b>"}${p?.changes ? `, framed <b>${V.frame}</b> at ${p.ow}×${p.oh}` : ""}.`;
   }
   async function doExport() {
     if (!V.segs.length) return;
     const segs = V.segs.map((s) => ({ id: s.id, start: s.start, end: s.end }));
     $("#vResults").innerHTML = "";
     showProgress(0, "starting");
-    const r = await api.video_export(segs, V.join && V.segs.length > 1, V.where === "folder" ? V.folder : "", $("#vName").value.trim());
+    const frame = V.frame === "source" ? null : { frame: V.frame, cx: V.cx, cy: V.cy, size: V.fsize };
+    const r = await api.video_export(segs, V.join && V.segs.length > 1, V.where === "folder" ? V.folder : "", $("#vName").value.trim(), frame);
     if (r.error) { hideProgress(); toast(`Export: ${r.error}`, "err"); return; }
     V.job = r; updateExportBtn();
   }
@@ -394,9 +480,11 @@ window.VideoUI = (() => {
     if (job.error) { box.appendChild(el("div", "v-result", `<div class="nm bad">Export failed</div><div>${esc(job.error)}</div>`)); return; }
     for (const rep of job.verify || []) {
       const d = el("div", "v-result");
-      const rows = (rep.rows || []).map((r) => `<tr><td>${esc(r.label)}</td><td class="${r.ok ? "" : "diff"}">${esc(r.ok ? r.output : `${r.output} (source: ${r.source})`)}</td></tr>`).join("");
+      const rows = (rep.rows || []).map((r) => `<tr><td>${esc(r.label)}</td><td class="${r.ok ? "" : "diff"}">${esc(r.ok ? (r.source && r.source !== r.output ? `${r.output} · from ${r.source}` : r.output) : `${r.output} (source: ${r.source})`)}</td></tr>`).join("");
+      const rf = rep.reframed;
+      const head = rf ? (rep.all_ok ? `✓ ${rf.frame} · ${rf.size[0]}×${rf.size[1]} · HDR kept · ${rf.encoder}` : "⚠ Not what was asked for") : (rep.all_ok ? "✓ Matches the source" : "⚠ Differs from the source");
       d.innerHTML = `<div class="nm">${esc(rep.output.split(/[\\/]/).pop())}</div>
-        <div class="${rep.all_ok ? "ok" : "bad"}">${rep.all_ok ? "✓ Matches the source" : "⚠ Differs from the source"} · ${hms(rep.duration)} · ${fmtSize(rep.size)}</div>
+        <div class="${rep.all_ok ? "ok" : "bad"}">${esc(head)} · ${hms(rep.duration)} · ${fmtSize(rep.size)}</div>
         <details${rep.all_ok ? "" : " open"}><summary>${esc(rep.summary)}</summary><table>${rows}</table></details>
         <div class="acts"><button class="ghost tiny" data-open>Open</button><button class="ghost tiny" data-reveal>Show in folder</button><button class="ghost tiny" data-add>Add to editor</button></div>`;
       d.querySelector("[data-open]").addEventListener("click", () => api.open_path(rep.output));
@@ -445,7 +533,7 @@ window.VideoUI = (() => {
     P.addEventListener("play", () => { cancelAnimationFrame(V.raf); V.raf = requestAnimationFrame(tick); renderTime(P.currentTime); });
     P.addEventListener("pause", () => { cancelAnimationFrame(V.raf); renderTime(P.currentTime); });
     P.addEventListener("ended", () => renderTime(P.currentTime));
-    P.addEventListener("loadedmetadata", () => renderTime(0));
+    P.addEventListener("loadedmetadata", () => { renderTime(0); layoutCrop(); });
     P.addEventListener("click", togglePlay);
     $("#vAdd").addEventListener("click", () => api.video_pick());
     $("#vPlay").addEventListener("click", togglePlay);
@@ -468,7 +556,10 @@ window.VideoUI = (() => {
       V.where = b.dataset.v; [...$("#vWhere").children].forEach((x) => x.classList.toggle("on", x === b));
       $("#vFolder").textContent = V.where === "folder" ? V.folder : "";
     });
+    $("#vFrame").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setFrame(b.dataset.v); });
+    $("#vSize").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; V.fsize = b.dataset.v; [...$("#vSize").children].forEach((x) => x.classList.toggle("on", x === b)); renderFrame(); });
     $("#vFfmpeg").addEventListener("click", () => { showProgress(0, "downloading FFmpeg"); api.ffmpeg_install(); });
+    bindCrop();
     window.addEventListener("resize", () => { if (V.open) placePanel(); });
     bindTimeline();
     renderSegs(); updateExportBtn();
