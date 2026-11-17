@@ -16,7 +16,10 @@ All notable changes to UltraShot are documented here. The format follows
   cache that is capped at six gigabytes. The editor is the Video tab beside Screenshots, opens on
   its own when a recording is dropped on the window, shows timecode with typed in and out points, a
   ruler, keyframe ticks and a guided first run, and uses FFmpeg, which it can fetch itself when none
-  is installed.
+  is installed. Everything can be done with the mouse: the empty player and the bin open the file
+  picker, the in and out handles have grips, a right click on the timeline or a segment opens a
+  menu, Split here cuts the selection in two on a keyframe, Reset returns the handles to the whole
+  recording, and Undo and Clear all take back segment changes.
 
 ## [1.2.1] - 2026-11-14
 

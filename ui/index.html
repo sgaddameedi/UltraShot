@@ -218,8 +218,8 @@
       <div class="v-stage" id="vStage">
         <video id="vPlayer" preload="metadata" playsinline></video>
         <div class="v-guide" id="vGuide">
-          <div class="v-step"><b>1</b><span>Add a recording</span><small>Drop it here or use Add in the list on the left.</small></div>
-          <div class="v-step"><b>2</b><span>Mark in and out</span><small>Scrub the timeline, then press I and O or drag the handles.</small></div>
+          <div class="v-step"><b>1</b><span>Add a recording</span><small>Click anywhere here to choose files, or drop them on the window.</small><button class="primary small" id="vGuideAdd">Choose recordings</button></div>
+          <div class="v-step"><b>2</b><span>Mark in and out</span><small>Drag the IN and OUT handles on the timeline, right-click it, or use the Mark buttons.</small></div>
           <div class="v-step"><b>3</b><span>Add segment, then export</span><small>Keep as many pieces as you like and export them as separate files or one joined file.</small></div>
         </div>
         <div class="v-stage-msg" id="vStageMsg"></div>
@@ -237,11 +237,13 @@
           <label class="v-mark"><span>Out</span><input type="text" class="tc" id="vOutTc" value="00:00:00:00" spellcheck="false" title="Type a time (hh:mm:ss:ff, mm:ss or seconds) and press Enter"><button class="ghost tiny" id="vSetOut" title="Mark the out point at the playhead (O)">Mark</button></label>
           <span class="v-sel" id="vSel"></span>
           <button class="ghost tiny" id="vPreview" title="Play from the in point to the out point (P)">Preview</button>
+          <button class="ghost tiny" id="vSplit" title="Cut the selection in two at the playhead and keep both parts as segments (S)">Split here</button>
+          <button class="ghost tiny" id="vReset" title="Reset in and out to the whole recording (R)">Reset</button>
           <button class="primary small" id="vAddSeg" title="Keep the part between in and out as a segment (Enter)" disabled>Add segment</button>
         </div>
       </div>
       <div class="v-ruler" id="vRuler"></div>
-      <div class="v-timeline" id="vTimeline">
+      <div class="v-timeline idle" id="vTimeline">
         <div class="v-strip" id="vStrip"></div>
         <div class="v-shade v-shade-l" id="vShadeL"></div>
         <div class="v-shade v-shade-r" id="vShadeR"></div>
@@ -250,11 +252,12 @@
         <div class="v-handle v-out" id="vOut" title="Out point: drag it"><span>OUT</span></div>
         <div class="v-playhead" id="vPlayhead"></div>
         <div class="v-cursor" id="vCursor"></div>
+        <div class="v-coach hidden" id="vCoach">Drag the <b>IN</b> and <b>OUT</b> handles to choose a part, or right-click anywhere on the timeline</div>
       </div>
       <div class="v-hint" id="vSnapHint"></div>
       <div class="v-segments" id="vSegments"></div>
       <div class="v-keys">
-        <span><kbd>Space</kbd> play</span><span><kbd>I</kbd> <kbd>O</kbd> mark in / out</span><span><kbd>[</kbd> <kbd>]</kbd> keyframes</span><span><kbd>←</kbd> <kbd>→</kbd> frame, <kbd>Shift</kbd> second</span><span><kbd>Enter</kbd> add segment</span><span><kbd>P</kbd> preview</span><span><kbd>Del</kbd> remove segment</span>
+        <span><kbd>Space</kbd> play</span><span><kbd>I</kbd> <kbd>O</kbd> mark in / out</span><span><kbd>[</kbd> <kbd>]</kbd> keyframes</span><span><kbd>←</kbd> <kbd>→</kbd> frame, <kbd>Shift</kbd> second</span><span><kbd>Enter</kbd> add segment</span><span><kbd>P</kbd> preview</span><span><kbd>S</kbd> split</span><span><kbd>R</kbd> reset</span><span><kbd>Ctrl</kbd><kbd>Z</kbd> undo</span><span><kbd>Del</kbd> remove segment</span><span>right-click the timeline or a segment for more</span>
       </div>
     </section>
     <aside class="v-export">

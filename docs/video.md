@@ -35,10 +35,10 @@ under the export button, row by row, so a mismatch is never silent.
 
 ## The editor
 
-The left column is the clip bin. Add recordings with the button at the top or drop them anywhere
-on the window; each one is probed in the background and shows its length, size and what it is,
-such as "AV1 10-bit · HDR10 (PQ, bt2020) · 3840×2160 · 60 fps · 92 Mb/s". A recording that is
-removed from the bin stays on disk.
+The left column is the clip bin. Add recordings by clicking the empty player, the dashed box in
+the bin or *Add* at the top, or drop them anywhere on the window; each one is probed in the
+background and shows its length, size and what it is, such as "AV1 10-bit · HDR10 (PQ, bt2020) ·
+3840×2160 · 60 fps · 92 Mb/s". A recording that is removed from the bin stays on disk.
 
 The middle holds the player, the transport and the timeline. The player streams the recording
 from disk, so a fifty gigabyte file opens as quickly as a small one and seeking is immediate. The
@@ -53,14 +53,23 @@ Times are shown as timecode, hours, minutes, seconds and frames, and the in and 
 accept a typed time in that form, as minutes and seconds, or as plain seconds. The timeline shows
 a film strip of the recording under a ruler, with the keyframes marked as short ticks when they
 are far enough apart to be told apart, and the part outside the in and out points dimmed. Click or
-drag on it to move the playhead, drag the two handles to set the in and out points, or press I and
-O to mark them at the playhead; the in handle snaps to a keyframe when released and the line under
-the timeline says where it landed. The bracket keys jump the playhead to the previous and next
-keyframe, the arrow keys step one frame, with Shift one second, Space plays and pauses, and P plays
-the selection from in to out. Add segment, or Enter, keeps the part between the handles as a
-numbered segment below the timeline. Segments can come from different
-recordings, can be reordered with the arrows on each one, previewed by clicking them and removed
-with the cross or the Delete key.
+drag on it to move the playhead and drag the two handles, marked IN and OUT, to set the in and out
+points. The *Mark* buttons beside the in and out fields do the same at the playhead, as do the I
+and O keys, and a right click on the timeline opens a menu that marks in or out, splits the
+selection, adds it as a segment, plays from that point or resets the handles. The in handle snaps
+to a keyframe when released and the line under the timeline says where it landed. *Reset* puts
+both handles back to the whole recording. The bracket keys jump the playhead to the previous and
+next keyframe, the arrow keys step one frame, with Shift one second, Space plays and pauses, and
+*Preview* or P plays the selection from in to out.
+
+*Add segment*, or Enter, keeps the part between the handles as a numbered segment below the
+timeline. *Split here*, or S, cuts the selection in two at the keyframe nearest the playhead and
+keeps both halves as segments, which is how a piece is taken out of the middle of a recording:
+split on either side of it and remove the segment between. Segments can come from different
+recordings. Click one to preview it, right-click it to play it, load it back into the handles,
+move it or remove it, or use the arrows and the cross on each one and the Delete key. *Undo*
+beside the total takes back the last segment change, as does Ctrl+Z, and *Clear all* empties the
+list.
 
 The right column is the export. Each segment becomes its own file next to its recording, or in a
 folder of your choice, named after the source with the in and out times appended. With *Join

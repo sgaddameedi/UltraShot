@@ -33,7 +33,7 @@ window.VideoUI = (() => {
   const V = {
     open: false, videos: new Map(), order: [], cur: null, inT: 0, outT: 0, segs: [], sel: -1,
     join: false, where: "beside", folder: "", keys: [], proxy: false, previewEnd: null,
-    stripFor: null, job: null, raf: 0, ff: null,
+    stripFor: null, job: null, raf: 0, ff: null, hist: [],
   };
   let P, api;
 
@@ -111,6 +111,13 @@ window.VideoUI = (() => {
   function renderGuide() {
     const has = !!(V.cur && V.videos.get(V.cur)?.info);
     $("#vGuide").classList.toggle("hidden", has);
+    $("#vStage").classList.toggle("empty", !has);
+    $("#vTimeline").classList.toggle("idle", !has);
+  }
+  function coach(show) {
+    const c = $("#vCoach");
+    if (show && !localStorage.getItem("ultrashot.vcoach")) c.classList.remove("hidden");
+    if (!show) { c.classList.add("hidden"); localStorage.setItem("ultrashot.vcoach", "1"); }
   }
 
   // ------------------------------------------------------------- clip bin
@@ -150,7 +157,7 @@ window.VideoUI = (() => {
       renderStageChip(); layoutRange(); layoutPlayhead(0); renderTime(0); renderRuler();
       loadStrip(id);
       api.video_keyframes(id, 0, 8).then((ks) => { if (V.cur === id && Array.isArray(ks)) { V.keys = ks; renderTicks(); } });
-      renderGuide();
+      renderGuide(); coach(true);
     }
   }
   function renderStageChip() {
@@ -230,14 +237,65 @@ window.VideoUI = (() => {
     layoutRange();
   }
   function setOut(t) { V.outT = clamp(t, 0, dur()); if (V.outT <= V.inT) V.inT = Math.max(0, V.outT - 1 / (fps() || 30)); layoutRange(); }
-  function updateAddBtn() { $("#vAddSeg").disabled = !V.cur || V.outT - V.inT < 1e-3; }
+  function updateAddBtn() { $("#vAddSeg").disabled = !V.cur || V.outT - V.inT < 1e-3; $("#vSplit").disabled = !V.cur; $("#vReset").disabled = !V.cur; }
+  function resetSel() { if (!V.cur) return; V.inT = 0; V.outT = dur(); $("#vSnapHint").textContent = ""; layoutRange(); }
+  async function splitAt(t) {
+    // the selection becomes two segments that meet at the keyframe nearest the playhead, so both
+    // halves stay lossless and no frame is lost or doubled between them
+    if (!V.cur) return;
+    t = t ?? P.currentTime;
+    if (t <= V.inT + 1e-3 || t >= V.outT - 1e-3) { toast("Put the playhead inside the selection to split it", "warn"); return; }
+    const r = await api.video_snap(V.cur, t, "nearest");
+    const k = r.error ? t : r.t;
+    if (k <= V.inT + 1e-3 || k >= V.outT - 1e-3) { toast("No keyframe inside the selection to split at", "warn"); return; }
+    const v = V.videos.get(V.cur);
+    pushHist();
+    V.segs.push({ id: V.cur, start: V.inT, end: k, name: v.name }, { id: V.cur, start: k, end: V.outT, name: v.name });
+    V.sel = V.segs.length - 1; renderSegs();
+    $("#vSnapHint").textContent = Math.abs(k - t) > 1e-3 ? `Split at the keyframe at ${tc(k, fps())}, the nearest lossless cut point.` : "";
+    toast(`Split into segments ${V.segs.length - 1} and ${V.segs.length}`, "ok");
+  }
+  function pushHist() { V.hist.push(V.segs.map((s) => ({ ...s }))); if (V.hist.length > 50) V.hist.shift(); }
+  function undo() { if (!V.hist.length) { toast("Nothing to undo", "info"); return; } V.segs = V.hist.pop(); V.sel = Math.min(V.sel, V.segs.length - 1); renderSegs(); toast("Undone", "info"); }
+  function clearSegs() { if (!V.segs.length) return; pushHist(); V.segs = []; V.sel = -1; renderSegs(); toast("Segments cleared. Ctrl+Z brings them back.", "info"); }
+  function timelineMenu(e) {
+    if (!V.cur) return;
+    e.preventDefault(); coach(false);
+    const t = x2t(e.clientX), f = fps();
+    window.popover(null, [
+      { label: `Mark in here`, hint: tc(t, f), run: () => { setIn(t); seek(t); } },
+      { label: `Mark out here`, hint: tc(t, f), run: () => { setOut(t); seek(t); } },
+      { label: "Split the selection here", hint: "two segments", disabled: !(t > V.inT && t < V.outT), run: () => splitAt(t) },
+      "-",
+      { label: "Add segment", hint: `${tc(V.inT, f)} → ${tc(V.outT, f)}`, disabled: V.outT - V.inT < 1e-3, run: addSegment },
+      { label: "Play from here", run: () => { seek(t); V.previewEnd = null; P.play(); } },
+      { label: "Reset in and out", run: resetSel },
+    ], { x: e.clientX, y: e.clientY });
+  }
+  function segMenu(i, e) {
+    e.preventDefault(); e.stopPropagation();
+    const s = V.segs[i]; if (!s) return;
+    window.popover(null, [
+      { label: "Play this segment", run: () => previewSeg(i) },
+      { label: "Load into in and out", hint: "to adjust it, then Add segment again", run: () => { previewSeg(i); P.pause(); } },
+      "-",
+      { label: "Move earlier", disabled: i === 0, run: () => moveSeg(i, -1) },
+      { label: "Move later", disabled: i === V.segs.length - 1, run: () => moveSeg(i, 1) },
+      "-",
+      { label: "Remove", danger: true, run: () => removeSeg(i) },
+    ], { x: e.clientX, y: e.clientY });
+  }
+  function moveSeg(i, d) { const j = i + d; if (j < 0 || j >= V.segs.length) return; pushHist(); [V.segs[i], V.segs[j]] = [V.segs[j], V.segs[i]]; V.sel = j; renderSegs(); }
+  function removeSeg(i) { pushHist(); V.segs.splice(i, 1); V.sel = Math.min(V.sel, V.segs.length - 1); renderSegs(); }
   function bindTimeline() {
     const tl = $("#vTimeline");
     let drag = null;
     tl.addEventListener("pointerdown", (e) => {
       if (!V.cur) return;
+      if (e.button === 2) return;
       const h = e.target.closest(".v-handle");
       drag = h ? (h.id === "vIn" ? "in" : "out") : "seek";
+      if (h) coach(false);
       tl.setPointerCapture?.(e.pointerId);
       move(e); e.preventDefault();
     });
@@ -253,6 +311,7 @@ window.VideoUI = (() => {
     const up = () => { if (!drag) return; const d = drag; drag = null; if (d === "in") setIn(V.inT); else if (d === "out") setOut(V.outT); };
     tl.addEventListener("pointerup", up); tl.addEventListener("pointercancel", up);
     tl.addEventListener("dblclick", (e) => { e.preventDefault(); togglePlay(); });
+    tl.addEventListener("contextmenu", timelineMenu);
     new ResizeObserver(() => { if (V.cur && V.open) { renderRuler(); renderTicks(); loadStripDebounced(); } }).observe(tl);
     // typed in and out points
     const bindTc = (inp, apply) => {
@@ -269,6 +328,7 @@ window.VideoUI = (() => {
   function addSegment() {
     if (!V.cur || V.outT - V.inT < 1e-3) return;
     const v = V.videos.get(V.cur);
+    pushHist(); coach(false);
     V.segs.push({ id: V.cur, start: V.inT, end: V.outT, name: v.name });
     V.sel = V.segs.length - 1;
     renderSegs(); toast(`Segment ${V.segs.length} added: ${secs(V.outT - V.inT)}`, "ok");
@@ -283,14 +343,17 @@ window.VideoUI = (() => {
       d.innerHTML = `<span class="n">${i + 1}</span><span class="nm">${esc(s.name)}</span><span class="rg">${tc(s.start, f)} → ${tc(s.end, f)} · ${secs(s.end - s.start)}</span>
         <span class="mv" title="Move earlier">‹</span><span class="mv" title="Move later">›</span><span class="rm" title="Remove segment">✕</span>`;
       const [left, right] = d.querySelectorAll(".mv"); const rm = d.querySelector(".rm");
-      left.addEventListener("click", (e) => { e.stopPropagation(); if (i > 0) { [V.segs[i - 1], V.segs[i]] = [V.segs[i], V.segs[i - 1]]; V.sel = i - 1; renderSegs(); } });
-      right.addEventListener("click", (e) => { e.stopPropagation(); if (i < V.segs.length - 1) { [V.segs[i + 1], V.segs[i]] = [V.segs[i], V.segs[i + 1]]; V.sel = i + 1; renderSegs(); } });
-      rm.addEventListener("click", (e) => { e.stopPropagation(); V.segs.splice(i, 1); V.sel = Math.min(V.sel, V.segs.length - 1); renderSegs(); });
+      left.addEventListener("click", (e) => { e.stopPropagation(); moveSeg(i, -1); });
+      right.addEventListener("click", (e) => { e.stopPropagation(); moveSeg(i, 1); });
+      rm.addEventListener("click", (e) => { e.stopPropagation(); removeSeg(i); });
       d.addEventListener("click", () => previewSeg(i));
+      d.addEventListener("contextmenu", (e) => segMenu(i, e));
       box.appendChild(d);
     });
     const total = V.segs.reduce((a, s) => a + s.end - s.start, 0);
-    box.appendChild(el("span", "v-total", `${V.segs.length} segment${V.segs.length > 1 ? "s" : ""} · ${hms(total)} total`));
+    const tot = el("span", "v-total", `<span>${V.segs.length} segment${V.segs.length > 1 ? "s" : ""} · ${hms(total)} total</span><button class="ghost tiny" title="Undo the last change to the segments (Ctrl+Z)">Undo</button><button class="ghost tiny" title="Remove every segment (Ctrl+Z brings them back)">Clear all</button>`);
+    const [u, cl] = tot.querySelectorAll("button"); u.addEventListener("click", undo); cl.addEventListener("click", clearSegs);
+    box.appendChild(tot);
     updateExportBtn();
   }
   function previewSeg(i) {
@@ -352,6 +415,9 @@ window.VideoUI = (() => {
       case "i": case "I": setIn(P.currentTime); return true;
       case "o": case "O": setOut(P.currentTime); return true;
       case "p": case "P": previewSelection(); return true;
+      case "s": case "S": splitAt(); return true;
+      case "r": case "R": resetSel(); return true;
+      case "z": case "Z": if (e.ctrlKey || e.metaKey) { undo(); return true; } return false;
       case "Enter": addSegment(); return true;
       case "ArrowLeft": P.pause(); seek(P.currentTime - step); return true;
       case "ArrowRight": P.pause(); seek(P.currentTime + step); return true;
@@ -359,7 +425,7 @@ window.VideoUI = (() => {
       case "End": seek(dur()); return true;
       case "[": jumpKey("prev"); return true;
       case "]": jumpKey("next"); return true;
-      case "Delete": case "Backspace": if (V.sel >= 0 && V.segs[V.sel]) { V.segs.splice(V.sel, 1); V.sel = Math.min(V.sel, V.segs.length - 1); renderSegs(); } return true;
+      case "Delete": case "Backspace": if (V.sel >= 0 && V.segs[V.sel]) removeSeg(V.sel); return true;
     }
     return false;
   }
@@ -383,8 +449,13 @@ window.VideoUI = (() => {
     $("#vPlay").addEventListener("click", togglePlay);
     $("#vPrevKey").addEventListener("click", () => jumpKey("prev"));
     $("#vNextKey").addEventListener("click", () => jumpKey("next"));
-    $("#vSetIn").addEventListener("click", (e) => { e.preventDefault(); setIn(P.currentTime); });
-    $("#vSetOut").addEventListener("click", (e) => { e.preventDefault(); setOut(P.currentTime); });
+    $("#vSetIn").addEventListener("click", (e) => { e.preventDefault(); coach(false); setIn(P.currentTime); });
+    $("#vSetOut").addEventListener("click", (e) => { e.preventDefault(); coach(false); setOut(P.currentTime); });
+    $("#vSplit").addEventListener("click", () => splitAt());
+    $("#vReset").addEventListener("click", resetSel);
+    $("#vGuideAdd").addEventListener("click", (e) => { e.stopPropagation(); api.video_pick(); });
+    $("#vStage").addEventListener("click", (e) => { if ($("#vStage").classList.contains("empty")) api.video_pick(); });
+    $("#vBinEmpty").addEventListener("click", () => api.video_pick());
     $("#vPreview").addEventListener("click", previewSelection);
     $("#vAddSeg").addEventListener("click", addSegment);
     $("#vExport").addEventListener("click", doExport);
